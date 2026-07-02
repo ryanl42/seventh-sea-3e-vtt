@@ -1,0 +1,48 @@
+{
+  "id": "seventh-sea-3e",
+  "title": "7th Sea 3rd Edition",
+  "description": "7th Sea 3rd Edition",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "authors": [
+    {
+      "name": "Your Name"
+    }
+  ],
+  "esmodules": [
+    "module/seventh-sea.mjs"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "hero": {
+        "label": "ACTOR.TypeHero"
+      },
+      "npc": {
+        "label": "ACTOR.TypeNpc"
+      }
+    },
+    "Item": {
+      "advantage": {
+        "label": "ITEM.TypeAdvantage"
+      }
+    }
+  },
+  "packs": [],
+  "socket": false,
+  "url": "",
+  "manifest": "",
+  "download": "",
+  "styles": [
+    "styles/seventh-sea.css"
+  ]
+}

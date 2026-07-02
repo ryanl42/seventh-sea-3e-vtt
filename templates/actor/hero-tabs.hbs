@@ -1,0 +1,13 @@
+{{!-- Tab Navigation --}}
+<nav class="sheet-tabs">
+  <button type="button" class="sheet-tab-btn {{#if (eq activeTab "skills")}}active{{/if}}"
+          data-action="switchTab" data-tab="skills">Skills</button>
+  <button type="button" class="sheet-tab-btn {{#if (eq activeTab "combat")}}active{{/if}}"
+          data-action="switchTab" data-tab="combat">Combat</button>
+  <button type="button" class="sheet-tab-btn {{#if (eq activeTab "sorcery")}}active{{/if}}"
+          data-action="switchTab" data-tab="sorcery">Sorcery</button>
+  <button type="button" class="sheet-tab-btn {{#if (eq activeTab "advantages")}}active{{/if}}"
+          data-action="switchTab" data-tab="advantages">Advantages</button>
+  <button type="button" class="sheet-tab-btn {{#if (eq activeTab "biography")}}active{{/if}}"
+          data-action="switchTab" data-tab="biography">Biography</button>
+</nav>

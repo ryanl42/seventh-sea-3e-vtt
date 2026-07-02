@@ -1,0 +1,44 @@
+{{!-- Hero Header --}}
+<div class="sheet-header">
+
+  <img class="actor-img" src="{{actor.img}}" title="{{actor.name}}" />
+
+  <div class="header-fields">
+
+    <div class="field-row">
+      <label>Name</label>
+      <input type="text" name="name" value="{{actor.name}}"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="field-row">
+      <label>Archetype</label>
+      <input type="text" name="system.archetype" value="{{system.archetype}}"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="field-row">
+      <label>Nation</label>
+      <input type="text" name="system.nation" value="{{system.nation}}"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="field-row">
+      <label>Background</label>
+      <input type="text" name="system.background" value="{{system.background}}"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="field-row hero-points-row">
+      <label>Hero Points</label>
+      {{#if isEditable}}
+      <button type="button" class="hp-btn" data-action="adjustHeroPoints" data-delta="-1">−</button>
+      {{/if}}
+      <span class="hp-value">{{system.heroPoints}}</span>
+      {{#if isEditable}}
+      <button type="button" class="hp-btn" data-action="adjustHeroPoints" data-delta="1">+</button>
+      {{/if}}
+    </div>
+
+  </div>
+</div>

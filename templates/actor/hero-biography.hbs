@@ -1,0 +1,18 @@
+<div class="tab-panel" data-tab="biography">
+{{!-- Biography Panel --}}
+<div class="biography-panel">
+  <div class="section-heading">Biography</div>
+
+  <div class="bio-field">
+    <label>Biography</label>
+    <textarea name="system.biography" rows="4"
+              {{#unless isEditable}}disabled{{/unless}}>{{system.biography}}</textarea>
+  </div>
+
+  <div class="bio-field">
+    <label>Notes</label>
+    <textarea name="system.notes" rows="4"
+              {{#unless isEditable}}disabled{{/unless}}>{{system.notes}}</textarea>
+  </div>
+</div>
+</div>

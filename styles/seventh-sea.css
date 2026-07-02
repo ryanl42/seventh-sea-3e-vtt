@@ -1,0 +1,987 @@
+/* 7th Sea 3e — Stylesheet */
+
+/* ── Base ─────────────────────────────────────────────── */
+.seventh-sea.actor-sheet .window-content {
+  padding: 8px;
+  background: #f5ead5;
+  font-family: "Palatino Linotype", Palatino, serif;
+  color: #2a1a0a;
+  overflow-y: auto;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.sheet-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #b8860b;
+  margin-bottom: 10px;
+}
+
+.actor-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 2px solid #8b7355;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.header-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-row label {
+  width: 90px;
+  font-size: 0.82em;
+  font-weight: bold;
+  color: #5a3e28;
+  flex-shrink: 0;
+}
+
+.field-row input {
+  flex: 1;
+  border: 1px solid #8b7355;
+  background: rgba(255,255,255,0.6);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-family: inherit;
+  font-size: 0.9em;
+  color: #2a1a0a;
+}
+
+/* ── Section headings ─────────────────────────────────── */
+.section-heading {
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #b8860b;
+  border-bottom: 1px solid #b8860b;
+  padding-bottom: 2px;
+  margin-bottom: 8px;
+  margin-top: 10px;
+}
+
+/* ── Traits Panel ─────────────────────────────────────── */
+.traits-panel {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #c8b89a;
+}
+
+.traits-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.trait-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255,255,255,0.4);
+  border: 1px solid #c8b89a;
+  border-radius: 4px;
+  padding: 6px 4px;
+}
+
+.trait-row label {
+  font-size: 0.78em;
+  font-weight: bold;
+  color: #5a3e28;
+  text-align: center;
+}
+
+.trait-row input[type="number"] {
+  width: 44px;
+  text-align: center;
+  border: 1px solid #8b7355;
+  background: rgba(255,255,255,0.7);
+  border-radius: 3px;
+  padding: 2px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #2a1a0a;
+  font-family: inherit;
+}
+
+/* ── Skills Panel ─────────────────────────────────────── */
+.skills-panel {
+  margin-bottom: 10px;
+}
+
+.skills-domains {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.skill-domain {
+  background: rgba(255,255,255,0.3);
+  border: 1px solid #c8b89a;
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.skill-domain h3 {
+  font-size: 0.78em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #b8860b;
+  border-bottom: 1px solid #c8b89a;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
+}
+
+.skill-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  border-bottom: 1px dotted #e0d0b0;
+}
+
+.skill-row:last-child {
+  border-bottom: none;
+}
+
+.skill-row input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #b8860b;
+}
+
+.skill-row label {
+  flex: 1;
+  font-size: 0.85em;
+  color: #2a1a0a;
+}
+
+.skill-row input[type="number"] {
+  width: 38px;
+  text-align: center;
+  border: 1px solid #8b7355;
+  background: rgba(255,255,255,0.7);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 0.95em;
+  font-weight: bold;
+  color: #2a1a0a;
+  font-family: inherit;
+}
+
+/* ── Specialty checkbox tooltip ───────────────────────── */
+.skill-row input[type="checkbox"]:checked {
+  outline: 1px solid #b8860b;
+}
+
+/* ── Combat Panel ─────────────────────────────────────── */
+.combat-panel {
+  margin-top: 4px;
+}
+
+.combat-panel .hint {
+  font-size: 0.78em;
+  font-style: italic;
+  color: #6a5a44;
+  margin: 0 0 10px 0;
+}
+
+/* Aptitude table */
+.aptitude-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+
+.aptitude-table thead th {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8b7355;
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid #c8b89a;
+}
+
+.aptitude-table thead th.col-value,
+.aptitude-table thead th.col-roll {
+  text-align: center;
+}
+
+.aptitude-table tbody tr {
+  border-bottom: 1px solid #e8dcc8;
+}
+
+.aptitude-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.aptitude-table tbody tr:hover {
+  background: rgba(184,134,11,0.06);
+}
+
+.aptitude-table td {
+  padding: 5px 6px;
+  vertical-align: middle;
+}
+
+.apt-label {
+  font-weight: bold;
+  font-size: 0.88em;
+  color: #2a1a0a;
+  width: 90px;
+  white-space: nowrap;
+}
+
+.aptitude-table select {
+  width: 100%;
+  border: 1px solid #8b7355;
+  background: #fff;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 0.88em;
+  color: #2a1a0a;
+}
+
+.col-value {
+  width: 44px;
+  text-align: center;
+}
+
+.apt-value {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  font-size: 1.15em;
+  font-weight: bold;
+  color: #1a3a6b;
+  background: rgba(26,58,107,0.08);
+  border: 1px solid #c8b89a;
+  border-radius: 50%;
+}
+
+.col-roll {
+  width: 80px;
+  text-align: center;
+}
+
+.apt-roll-btn {
+  background: #1a3a6b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8em;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.apt-roll-btn:hover {
+  background: #b8860b;
+}
+
+/* ── Wounds Block ─────────────────────────────────────── */
+.wounds-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255,255,255,0.3);
+  border: 1px solid #c8b89a;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.wounds-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wounds-label {
+  width: 120px;
+  font-weight: bold;
+  font-size: 0.85em;
+  color: #5a3e28;
+  flex-shrink: 0;
+}
+
+.wounds-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wounds-controls input[type="number"] {
+  width: 52px;
+  text-align: center;
+  border: 1px solid #8b7355;
+  background: #fff;
+  border-radius: 3px;
+  padding: 4px;
+  font-size: 1em;
+  font-weight: bold;
+  color: #8b1a1a;
+}
+
+.wounds-caption {
+  font-size: 0.8em;
+  color: #888;
+  font-style: italic;
+}
+
+/* Dramatic wound boxes */
+.dramatic-boxes {
+  display: flex;
+  gap: 8px;
+}
+
+.dw-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  width: 44px;
+  padding: 6px 4px;
+  border: 2px solid #c8b89a;
+  border-radius: 6px;
+  background: #f5ead5;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dw-box input[type="checkbox"] {
+  display: none;
+}
+
+.dw-star {
+  font-size: 1.4em;
+  color: #ccc;
+  line-height: 1;
+}
+
+.dw-num {
+  font-size: 0.7em;
+  color: #aaa;
+  font-weight: bold;
+}
+
+.dw-box.dw-marked {
+  background: #8b1a1a;
+  border-color: #6b1010;
+}
+
+.dw-box.dw-marked .dw-star {
+  color: #ffd700;
+}
+
+.dw-box.dw-marked .dw-num {
+  color: #ffcccc;
+}
+
+.dw-box:hover {
+  border-color: #8b7355;
+  background: #eddfc0;
+}
+
+.dw-box.dw-marked:hover {
+  background: #a02020;
+}
+
+/* Helpless row */
+.helpless-row .wounds-controls input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #8b1a1a;
+  cursor: pointer;
+}
+
+.helpless-flag {
+  font-weight: bold;
+  color: #8b1a1a;
+  font-size: 0.9em;
+}
+
+.is-helpless {
+  background: rgba(139,26,26,0.08);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+}
+
+/* ── Advantages Panel ─────────────────────────────────── */
+.section-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.create-advantage-btn {
+  background: #b8860b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 0.8em;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.create-advantage-btn:hover {
+  background: #d4a843;
+}
+
+.advantage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.advantage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.35);
+  border: 1px solid #c8b89a;
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+.adv-category-tag {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.adv-passive       { background: #777; }
+.adv-situational   { background: #1a3a6b; }
+.adv-heroic        { background: #b8860b; }
+.adv-extraordinary { background: #8b1a1a; }
+
+.adv-name {
+  flex: 1;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.adv-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.adv-controls a {
+  cursor: pointer;
+  color: #8b7355;
+  font-size: 0.9em;
+}
+
+.adv-controls a:hover {
+  color: #8b1a1a;
+}
+
+.empty-list {
+  font-style: italic;
+  color: #888;
+  font-size: 0.85em;
+  text-align: center;
+  padding: 8px;
+}
+
+/* ── Hero Points Buttons ──────────────────────────────── */
+.hero-points-row {
+  align-items: center;
+  gap: 6px;
+}
+
+.hp-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #b8860b;
+  background: #b8860b;
+  color: white;
+  font-size: 1em;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hp-btn:hover { background: #d4a843; }
+
+.hp-value {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: #1a3a6b;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* ── Biography Panel ──────────────────────────────────── */
+.biography-panel { margin-top: 4px; }
+
+.bio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.bio-field label {
+  font-size: 0.85em;
+  font-weight: bold;
+  color: #5a3e28;
+}
+
+.bio-field textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #8b7355;
+  background: rgba(255,255,255,0.6);
+  border-radius: 3px;
+  padding: 6px;
+  font-family: inherit;
+  font-size: 0.88em;
+  color: #2a1a0a;
+}
+
+/* ── Roll Dialog ──────────────────────────────────────── */
+.ss-roll-dialog {
+  font-family: "Palatino Linotype", Palatino, serif;
+  padding: 4px 0;
+}
+
+.dialog-pool-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(184,134,11,0.1);
+  border: 1px solid #c8b89a;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.9em;
+  flex-wrap: wrap;
+}
+
+.dialog-explode-note {
+  font-size: 0.85em;
+  font-style: italic;
+  color: #6a5a44;
+}
+
+.dialog-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.dialog-field label {
+  font-size: 0.88em;
+  font-weight: bold;
+  color: #5a3e28;
+  min-width: 180px;
+}
+
+.dialog-field input[type="number"] {
+  width: 56px;
+  text-align: center;
+  border: 1px solid #8b7355;
+  background: rgba(255,255,255,0.7);
+  border-radius: 3px;
+  padding: 3px 4px;
+  font-family: inherit;
+  font-size: 1em;
+}
+
+.dialog-hint {
+  font-size: 0.78em;
+  font-style: italic;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Rollable Skills ──────────────────────────────────── */
+.skill-name { flex: 1; font-size: 0.85em; color: #2a1a0a; }
+.skill-name.rollable { cursor: pointer; color: #1a3a6b; text-decoration: underline dotted; }
+.skill-name.rollable:hover { color: #b8860b; }
+.section-sub { font-size: 0.7em; font-weight: normal; text-transform: none; letter-spacing: 0; color: #888; margin-left: 6px; }
+
+/* ── Chat Roll Card ───────────────────────────────────── */
+.seventh-sea.chat-roll {
+  font-family: "Palatino Linotype", Palatino, serif;
+  background: #f5ead5;
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.chat-roll-label {
+  font-weight: bold;
+  color: #1a3a6b;
+  border-bottom: 1px solid #c8b89a;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  font-size: 0.95em;
+}
+
+.chat-roll-dice { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+
+.chat-roll-dice .die {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: bold;
+  background: #e8d9b8;
+  color: #888;
+}
+
+.chat-roll-dice .die.hit { background: #2e7d32; color: white; border-color: #1b5e20; }
+
+.chat-roll-summary { font-size: 0.9em; color: #2a1a0a; }
+.result-success { color: #2e7d32; font-weight: bold; }
+.result-failure { color: #8b1a1a; font-weight: bold; }
+.extra-hits { color: #b8860b; font-size: 0.85em; margin-left: 4px; }
+.chat-roll-footer { font-size: 0.8em; color: #6a5a44; font-style: italic; margin-top: 3px; }
+.chat-roll-footer.hp-gained { color: #2e7d32; font-weight: bold; font-style: normal; }
+
+/* ── NPC Sheet ────────────────────────────────────────── */
+.seventh-sea.actor-sheet.npc .window-content { background: #f0e8d8; }
+.npc-header { border-bottom: 2px solid #8b1a1a; }
+.npc-body { margin-top: 10px; }
+
+.extended-action-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.extended-action-row label { font-size: 0.85em; font-weight: bold; color: #5a3e28; }
+.extended-action-row input { width: 50px; text-align: center; border: 1px solid #8b7355; background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 4px; }
+
+.npc-body select { border: 1px solid #8b7355; background: rgba(255,255,255,0.7); border-radius: 3px; padding: 3px 4px; font-family: inherit; }
+.npc-body textarea { width: 100%; resize: vertical; border: 1px solid #8b7355; background: rgba(255,255,255,0.6); border-radius: 3px; padding: 6px; font-family: inherit; font-size: 0.88em; color: #2a1a0a; }
+
+/* ── Item Sheet ───────────────────────────────────────── */
+.seventh-sea.item-sheet .window-content { padding: 8px; background: #f5ead5; font-family: "Palatino Linotype", Palatino, serif; color: #2a1a0a; }
+.item-sheet { display: flex; flex-direction: column; gap: 10px; }
+.item-header { display: flex; gap: 10px; align-items: flex-start; padding-bottom: 10px; border-bottom: 2px solid #b8860b; }
+.item-img { width: 60px; height: 60px; object-fit: cover; border: 2px solid #8b7355; border-radius: 4px; flex-shrink: 0; }
+.item-header-fields { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.item-header-fields select { flex: 1; border: 1px solid #8b7355; background: rgba(255,255,255,0.7); border-radius: 3px; padding: 3px 4px; font-family: inherit; font-size: 0.88em; }
+.item-description { display: flex; flex-direction: column; gap: 4px; }
+.item-description label { font-size: 0.85em; font-weight: bold; color: #5a3e28; }
+.item-description textarea { width: 100%; resize: vertical; border: 1px solid #8b7355; background: rgba(255,255,255,0.6); border-radius: 3px; padding: 6px; font-family: inherit; font-size: 0.88em; color: #2a1a0a; }
+
+/* ── Villainy Points HUD ──────────────────────────────── */
+.ss-villain-hud {
+  position: fixed;
+  bottom: 80px;
+  right: 10px;
+  z-index: 100;
+  background: #1a0a0a;
+  border: 2px solid #8b1a1a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  font-family: "Palatino Linotype", Palatino, serif;
+}
+
+.vhud-label {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #cc4444;
+  font-weight: bold;
+}
+
+.vhud-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vhud-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #8b1a1a;
+  background: #8b1a1a;
+  color: white;
+  font-size: 1em;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vhud-btn:hover { background: #cc2222; }
+
+.vhud-value {
+  font-size: 1.4em;
+  font-weight: bold;
+  color: #ff6666;
+  min-width: 28px;
+  text-align: center;
+}
+
+.vhud-reset {
+  background: none;
+  border: 1px solid #553333;
+  border-radius: 4px;
+  color: #cc4444;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.vhud-reset:hover { background: #330000; color: #ff6666; }
+
+/* Force Fate in chat */
+.result-forced { color: #8b4513; font-weight: bold; }
+.chat-roll-footer.force-fate { color: #8b1a1a; font-weight: bold; font-style: normal; }
+
+/* ── Sorte Strega Panel ───────────────────────────────── */
+.sorcery-panel {
+  margin-top: 4px;
+}
+
+.sorcery-toggle-row {
+  margin-bottom: 10px;
+}
+
+.sorcery-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: #5a3e28;
+  cursor: pointer;
+}
+
+.sorcery-toggle-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #8b1a1a;
+}
+
+/* Backlash */
+.backlash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(139,26,26,0.08);
+  border: 1px solid #c8a0a0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+
+.backlash-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backlash-label span:first-child {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: #8b1a1a;
+}
+
+.backlash-hint {
+  font-size: 0.75em;
+  color: #888;
+  font-style: italic;
+  max-width: 260px;
+}
+
+.backlash-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backlash-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #8b1a1a;
+  background: #8b1a1a;
+  color: white;
+  font-size: 1em;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.backlash-btn:hover { background: #cc2222; }
+
+.backlash-value {
+  font-size: 1.6em;
+  font-weight: bold;
+  color: #c8b89a;
+  min-width: 32px;
+  text-align: center;
+}
+
+.backlash-value.backlash-active {
+  color: #ff4444;
+  text-shadow: 0 0 8px rgba(255,68,68,0.4);
+}
+
+.backlash-warning {
+  font-size: 0.82em;
+  color: #8b1a1a;
+  font-weight: bold;
+  font-style: italic;
+  margin: 0 0 8px 0;
+}
+
+/* Sorte action buttons */
+.sorte-actions { margin-top: 4px; }
+
+.sorte-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.sorte-btn {
+  flex-shrink: 0;
+  min-width: 140px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #8b7355;
+  background: #2a1a0a;
+  color: #c8b89a;
+  font-family: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sorte-btn:hover { background: #1a3a6b; border-color: #1a3a6b; color: white; }
+.sorte-minor:hover { background: #b8860b; border-color: #b8860b; color: white; }
+.sorte-major:hover { background: #8b1a1a; border-color: #8b1a1a; color: white; }
+.sorte-ref:hover   { background: #2e4a2e; border-color: #2e4a2e; color: white; }
+
+.sorte-action-desc {
+  font-size: 0.78em;
+  color: #888;
+  font-style: italic;
+}
+
+/* ── Arcana chat cards ────────────────────────────────── */
+.sorte-reference,
+.sorte-weave {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.sorte-instruction {
+  font-style: italic;
+  font-size: 0.85em;
+  color: #6a5a44;
+  margin: 4px 0 8px;
+}
+
+.arcana-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.arcana-entry {
+  background: rgba(255,255,255,0.4);
+  border: 1px solid #c8b89a;
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.arcana-name {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: #1a3a6b;
+  margin-bottom: 3px;
+}
+
+.arcana-tier {
+  font-size: 0.8em;
+  color: #444;
+  margin-bottom: 2px;
+}
+
+.arcana-active {
+  color: #2a1a0a;
+  font-size: 0.85em;
+}
+
+/* ── Sheet Tabs ───────────────────────────────────────── */
+.sheet-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 2px solid #b8860b;
+  margin-bottom: 10px;
+  padding: 0;
+  background: none;
+}
+
+.sheet-tab-btn {
+  background: #e8d9b8;
+  border: 1px solid #c8b89a;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 5px 14px;
+  font-family: "Palatino Linotype", Palatino, serif;
+  font-size: 0.82em;
+  font-weight: bold;
+  color: #5a3e28;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sheet-tab-btn:hover {
+  background: #f0e0c0;
+  color: #2a1a0a;
+}
+
+.sheet-tab-btn.active {
+  background: #f5ead5;
+  color: #b8860b;
+  border-color: #b8860b;
+  border-bottom: 2px solid #f5ead5;
+  margin-bottom: -2px;
+  position: relative;
+  z-index: 1;
+}

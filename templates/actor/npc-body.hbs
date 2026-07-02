@@ -1,0 +1,103 @@
+{{!-- NPC Body --}}
+<div class="npc-body">
+
+  <div class="section-heading">Combat Aptitudes</div>
+  <div class="aptitude-grid">
+
+    <div class="aptitude-row">
+      <label>Attack</label>
+      <input type="number" name="system.combatAptitudes.attack" value="{{system.combatAptitudes.attack}}"
+             min="0" max="10"
+             {{#if (eq system.npcType "brute")}}disabled{{/if}}
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="aptitude-row">
+      <label>Defence</label>
+      <input type="number" name="system.combatAptitudes.defence" value="{{system.combatAptitudes.defence}}"
+             min="0" max="10"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="aptitude-row">
+      <label>Damage</label>
+      <input type="number" name="system.combatAptitudes.damage" value="{{system.combatAptitudes.damage}}"
+             min="0" max="10"
+             {{#if (eq system.npcType "brute")}}disabled{{/if}}
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="aptitude-row">
+      <label>Toughness</label>
+      <input type="number" name="system.combatAptitudes.toughness" value="{{system.combatAptitudes.toughness}}"
+             min="0" max="10"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="aptitude-row">
+      <label>Manoeuvre</label>
+      <input type="number" name="system.combatAptitudes.manoeuvre" value="{{system.combatAptitudes.manoeuvre}}"
+             min="0" max="10"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+  </div>
+
+  {{#if (eq system.npcType "brute")}}
+  <div class="section-heading">Extended Action Tracker</div>
+  <div class="extended-action-row">
+    <label>Target</label>
+    <input type="number" name="system.extendedAction.target" value="{{system.extendedAction.target}}" min="0"
+           {{#unless isEditable}}disabled{{/unless}} />
+    <label>Current</label>
+    <input type="number" name="system.extendedAction.current" value="{{system.extendedAction.current}}" min="0"
+           {{#unless isEditable}}disabled{{/unless}} />
+  </div>
+  {{/if}}
+
+  <div class="section-heading">Wounds</div>
+
+  <div class="wound-field">
+    <label>Minor Wounds</label>
+    <input type="number" name="system.wounds.minor" value="{{system.wounds.minor}}" min="0"
+           {{#unless isEditable}}disabled{{/unless}} />
+  </div>
+
+  <div class="dramatic-wounds-row">
+    <label>Dramatic Wounds</label>
+    <div class="dramatic-checkboxes">
+      <label class="dw-box">
+        <input type="checkbox" name="system.wounds.dramatic.0"
+               {{#if (lookup system.wounds.dramatic 0)}}checked{{/if}}
+               {{#unless isEditable}}disabled{{/unless}} /> ★
+      </label>
+      <label class="dw-box">
+        <input type="checkbox" name="system.wounds.dramatic.1"
+               {{#if (lookup system.wounds.dramatic 1)}}checked{{/if}}
+               {{#unless isEditable}}disabled{{/unless}} /> ★
+      </label>
+      <label class="dw-box">
+        <input type="checkbox" name="system.wounds.dramatic.2"
+               {{#if (lookup system.wounds.dramatic 2)}}checked{{/if}}
+               {{#unless isEditable}}disabled{{/unless}} /> ★
+      </label>
+      <label class="dw-box">
+        <input type="checkbox" name="system.wounds.dramatic.3"
+               {{#if (lookup system.wounds.dramatic 3)}}checked{{/if}}
+               {{#unless isEditable}}disabled{{/unless}} /> ★
+      </label>
+    </div>
+  </div>
+
+  <div class="wound-field">
+    <label>Helpless</label>
+    <input type="checkbox" name="system.wounds.helpless"
+           {{#if system.wounds.helpless}}checked{{/if}}
+           {{#unless isEditable}}disabled{{/unless}} />
+  </div>
+
+  <div class="section-heading">Notes</div>
+  <textarea name="system.notes" rows="4"
+            {{#unless isEditable}}disabled{{/unless}}>{{system.notes}}</textarea>
+
+</div>

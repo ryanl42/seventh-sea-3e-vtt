@@ -1,0 +1,56 @@
+{{!-- Advantage Item Sheet --}}
+<div class="item-sheet">
+
+  <div class="item-header">
+    <img class="item-img" src="{{item.img}}" title="{{item.name}}" />
+    <div class="item-header-fields">
+      <div class="field-row">
+        <label>Name</label>
+        <input type="text" name="name" value="{{item.name}}"
+               {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="field-row">
+        <label>Category</label>
+        <select name="system.category" {{#unless isEditable}}disabled{{/unless}}>
+          <option value="passive"       {{#if (eq system.category "passive")}}selected{{/if}}>
+            Passive — always active
+          </option>
+          <option value="situational"   {{#if (eq system.category "situational")}}selected{{/if}}>
+            Situational — bonus dice in circumstances
+          </option>
+          <option value="heroic"        {{#if (eq system.category "heroic")}}selected{{/if}}>
+            Heroic — spend a Hero Point to activate
+          </option>
+          <option value="extraordinary" {{#if (eq system.category "extraordinary")}}selected{{/if}}>
+            Extraordinary — free, once per session
+          </option>
+        </select>
+      </div>
+
+      {{#if (eq system.category "heroic")}}
+      <div class="field-row">
+        <label>HP Cost</label>
+        <input type="number" name="system.hpCost" value="{{system.hpCost}}"
+               min="0" max="10" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      {{/if}}
+
+      {{#if (eq system.category "extraordinary")}}
+      <div class="field-row">
+        <label>Used this session</label>
+        <input type="checkbox" name="system.used"
+               {{#if system.used}}checked{{/if}}
+               {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      {{/if}}
+
+    </div>
+  </div>
+
+  <div class="item-description">
+    <label>Description</label>
+    <textarea name="system.description" rows="8"
+              {{#unless isEditable}}disabled{{/unless}}>{{system.description}}</textarea>
+  </div>
+
+</div>

@@ -1,0 +1,9 @@
+{
+  "ACTOR": {
+    "TypeHero": "Hero",
+    "TypeNpc": "NPC"
+  },
+  "ITEM": {
+    "TypeAdvantage": "Advantage"
+  }
+}

@@ -1,0 +1,12 @@
+{{!-- Villainy Points HUD (GM only) --}}
+{{#if isGM}}
+<div id="seventh-sea-villain-hud" class="ss-villain-hud">
+  <div class="vhud-label">Villainy</div>
+  <div class="vhud-controls">
+    <button class="vhud-btn" data-action="vp-decrease" title="Spend 1 Villainy Point">−</button>
+    <span class="vhud-value">{{vp}}</span>
+    <button class="vhud-btn" data-action="vp-increase" title="Gain 1 Villainy Point">+</button>
+  </div>
+  <button class="vhud-reset" data-action="vp-reset" title="Reset to number of players">↺</button>
+</div>
+{{/if}}

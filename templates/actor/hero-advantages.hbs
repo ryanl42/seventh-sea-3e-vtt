@@ -1,0 +1,28 @@
+<div class="tab-panel" data-tab="advantages">
+{{!-- Advantages Panel --}}
+<div class="advantages-panel">
+  <div class="section-heading-row">
+    <div class="section-heading">Advantages</div>
+    {{#if isEditable}}
+    <button type="button" class="create-advantage-btn" data-action="createAdvantage">+ Add</button>
+    {{/if}}
+  </div>
+
+  <div class="advantage-list">
+    {{#each advantages as |adv|}}
+    <div class="advantage-item">
+      <span class="adv-category-tag adv-{{adv.system.category}}">{{adv.system.category}}</span>
+      <span class="adv-name">{{adv.name}}</span>
+      {{#if ../isEditable}}
+      <div class="adv-controls">
+        <a data-action="editAdvantage" data-item-id="{{adv.id}}" title="Edit">✎</a>
+        <a data-action="deleteAdvantage" data-item-id="{{adv.id}}" title="Delete">✕</a>
+      </div>
+      {{/if}}
+    </div>
+    {{else}}
+    <p class="empty-list">No advantages yet.</p>
+    {{/each}}
+  </div>
+</div>
+</div>

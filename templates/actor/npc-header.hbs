@@ -1,0 +1,37 @@
+{{!-- NPC Header --}}
+<div class="sheet-header npc-header">
+
+  <img class="actor-img" src="{{actor.img}}" title="{{actor.name}}" />
+
+  <div class="header-fields">
+
+    <div class="field-row">
+      <label>Name</label>
+      <input type="text" name="name" value="{{actor.name}}"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="field-row">
+      <label>Type</label>
+      <select name="system.npcType" {{#unless isEditable}}disabled{{/unless}}>
+        <option value="brute"    {{#if (eq system.npcType "brute")}}selected{{/if}}>Brutes Squad</option>
+        <option value="henchman" {{#if (eq system.npcType "henchman")}}selected{{/if}}>Henchman</option>
+        <option value="villain"  {{#if (eq system.npcType "villain")}}selected{{/if}}>Villain</option>
+      </select>
+    </div>
+
+    {{#if (eq system.npcType "brute")}}
+    <div class="field-row">
+      <label>Brute Rank</label>
+      <input type="number" name="system.bruteRank" value="{{system.bruteRank}}" min="1" max="5"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+    <div class="field-row">
+      <label>Brute Count</label>
+      <input type="number" name="system.bruteCount" value="{{system.bruteCount}}" min="0"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+    {{/if}}
+
+  </div>
+</div>

@@ -1,0 +1,42 @@
+{{!-- Traits Panel --}}
+<div class="traits-panel">
+  <div class="section-heading">Traits</div>
+  <div class="traits-grid">
+
+    <div class="trait-row">
+      <label>Brawn</label>
+      <input type="number" name="system.traits.brawn.value"
+             value="{{system.traits.brawn.value}}" min="1" max="5"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="trait-row">
+      <label>Finesse</label>
+      <input type="number" name="system.traits.finesse.value"
+             value="{{system.traits.finesse.value}}" min="1" max="5"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="trait-row">
+      <label>Resolve</label>
+      <input type="number" name="system.traits.resolve.value"
+             value="{{system.traits.resolve.value}}" min="1" max="5"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="trait-row">
+      <label>Panache</label>
+      <input type="number" name="system.traits.panache.value"
+             value="{{system.traits.panache.value}}" min="1" max="5"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+    <div class="trait-row">
+      <label>Wits</label>
+      <input type="number" name="system.traits.wits.value"
+             value="{{system.traits.wits.value}}" min="1" max="5"
+             {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+
+  </div>
+</div>
