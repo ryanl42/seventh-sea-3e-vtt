@@ -34,15 +34,28 @@
     "Item": {
       "advantage": {
         "label": "ITEM.TypeAdvantage"
+      },
+      "sorcery": {
+        "label": "ITEM.TypeSorcery"
       }
     }
   },
-  "packs": [],
+  "packs": [
+    {
+      "name": "heroes",
+      "label": "Pre-Generated Heroes",
+      "path": "packs/heroes.db",
+      "type": "Actor",
+      "system": "seventh-sea-3e"
+    }
+  ],
   "socket": false,
   "url": "",
   "manifest": "",
   "download": "",
   "styles": [
     "styles/seventh-sea.css"
-  ]
+  ],
+  "primaryTokenAttribute": "wounds",
+  "secondaryTokenAttribute": "heroPointsBar"
 }

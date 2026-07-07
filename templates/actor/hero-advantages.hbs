@@ -1,6 +1,6 @@
 <div class="tab-panel" data-tab="advantages">
-{{!-- Advantages Panel --}}
 <div class="advantages-panel">
+
   <div class="section-heading-row">
     <div class="section-heading">Advantages</div>
     {{#if isEditable}}
@@ -10,19 +10,35 @@
 
   <div class="advantage-list">
     {{#each advantages as |adv|}}
-    <div class="advantage-item">
-      <span class="adv-category-tag adv-{{adv.system.category}}">{{adv.system.category}}</span>
-      <span class="adv-name">{{adv.name}}</span>
-      {{#if ../isEditable}}
-      <div class="adv-controls">
-        <a data-action="editAdvantage" data-item-id="{{adv.id}}" title="Edit">✎</a>
-        <a data-action="deleteAdvantage" data-item-id="{{adv.id}}" title="Delete">✕</a>
+    <div class="advantage-item" data-adv-id="{{adv.id}}">
+
+      {{!-- Header row - always visible --}}
+      <div class="adv-header" data-action="toggleAdvantage" data-adv-id="{{adv.id}}">
+        <span class="adv-expand-icon">▶</span>
+        <span class="adv-category-tag adv-{{adv.system.category}}">{{adv.system.category}}</span>
+        <span class="adv-name">{{adv.name}}</span>
+        {{#if ../isEditable}}
+        <div class="adv-controls">
+          <a data-action="editAdvantage" data-item-id="{{adv.id}}" title="Edit">✎</a>
+          <a data-action="deleteAdvantage" data-item-id="{{adv.id}}" title="Delete">✕</a>
+        </div>
+        {{/if}}
       </div>
-      {{/if}}
+
+      {{!-- Description - hidden until expanded --}}
+      <div class="adv-body" style="display:none;">
+        {{#if adv.system.description}}
+        <div class="adv-description">{{{adv.system.description}}}</div>
+        {{else}}
+        <p class="adv-no-desc">No description. Click ✎ to add one.</p>
+        {{/if}}
+      </div>
+
     </div>
     {{else}}
     <p class="empty-list">No advantages yet.</p>
     {{/each}}
   </div>
+
 </div>
 </div>

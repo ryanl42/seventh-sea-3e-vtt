@@ -1,6 +1,6 @@
 /**
- * 7th Sea 3e — Hero Data Model (Step 16)
- * Adds sorcery flag and backlash tracker.
+ * 7th Sea 3e — Hero Data Model (Step 22)
+ * Adds derived wound values for token bars and proper wound tracking.
  */
 const { fields } = foundry.data;
 
@@ -8,8 +8,6 @@ export class HeroData extends foundry.abstract.TypeDataModel {
 
   static defineSchema() {
     return {
-
-      // ── Traits ──────────────────────────────────────────────────────────
       traits: new fields.SchemaField({
         brawn:   new fields.SchemaField({ value: new fields.NumberField({ integer: true, min: 1, max: 5, initial: 2 }) }),
         finesse: new fields.SchemaField({ value: new fields.NumberField({ integer: true, min: 1, max: 5, initial: 2 }) }),
@@ -18,7 +16,6 @@ export class HeroData extends foundry.abstract.TypeDataModel {
         wits:    new fields.SchemaField({ value: new fields.NumberField({ integer: true, min: 1, max: 5, initial: 2 }) }),
       }),
 
-      // ── Skills ──────────────────────────────────────────────────────────
       skills: new fields.SchemaField({
         investigation: new fields.SchemaField({ value: new fields.NumberField({ integer: true, min: 0, max: 5, initial: 0 }), specialty: new fields.BooleanField({ initial: false }) }),
         stealth:       new fields.SchemaField({ value: new fields.NumberField({ integer: true, min: 0, max: 5, initial: 0 }), specialty: new fields.BooleanField({ initial: false }) }),
@@ -43,7 +40,6 @@ export class HeroData extends foundry.abstract.TypeDataModel {
         perform:       new fields.SchemaField({ value: new fields.NumberField({ integer: true, min: 0, max: 5, initial: 0 }), specialty: new fields.BooleanField({ initial: false }) }),
       }),
 
-      // ── Combat Aptitudes ────────────────────────────────────────────────
       combatAptitudes: new fields.SchemaField({
         attack:    new fields.SchemaField({ trait: new fields.StringField({ initial: "", blank: true }) }),
         defence:   new fields.SchemaField({ trait: new fields.StringField({ initial: "", blank: true }) }),
@@ -52,7 +48,6 @@ export class HeroData extends foundry.abstract.TypeDataModel {
         manoeuvre: new fields.SchemaField({ trait: new fields.StringField({ initial: "", blank: true }) }),
       }),
 
-      // ── Wounds ──────────────────────────────────────────────────────────
       wounds: new fields.SchemaField({
         minor:    new fields.NumberField({ integer: true, min: 0, initial: 0 }),
         dramatic: new fields.ArrayField(
@@ -62,16 +57,7 @@ export class HeroData extends foundry.abstract.TypeDataModel {
         helpless: new fields.BooleanField({ initial: false }),
       }),
 
-      // ── Hero Points ─────────────────────────────────────────────────────
       heroPoints: new fields.NumberField({ integer: true, min: 0, initial: 1 }),
-
-      // ── Sorcery (Sorte Strega) ───────────────────────────────────────────
-      sorcery: new fields.SchemaField({
-        isSorteStrega: new fields.BooleanField({ initial: false }),
-        backlash:      new fields.NumberField({ integer: true, min: 0, initial: 0 }),
-      }),
-
-      // ── Biography ───────────────────────────────────────────────────────
       biography:  new fields.HTMLField({ initial: "" }),
       archetype:  new fields.StringField({ initial: "", blank: true }),
       nation:     new fields.StringField({ initial: "", blank: true }),
@@ -93,5 +79,43 @@ export class HeroData extends foundry.abstract.TypeDataModel {
     }
 
     this.lowestTrait = Math.min(...Object.values(this.traits).map(t => t.value));
+
+    // ── Token bar objects ────────────────────────────────────────────────
+    // Foundry reads {value, max} objects for token bars.
+    // "wounds" bar: tracks total wound progress across all steps.
+    const toughness = this.combatAptitudes.toughness.value ?? 2;
+    this.toughnessValue      = toughness;
+    this.dramaticWoundCount  = this.wounds.dramatic.filter(Boolean).length;
+    this.woundTotal          = this.wounds.minor + (this.dramaticWoundCount * toughness);
+    this.woundMax            = toughness * 4;
+
+    // Expose as {value,max} objects that Foundry token bars can read
+    this.wounds.value = this.woundTotal;
+    this.wounds.max   = this.woundMax;
+
+    // Hero Points bar
+    this.heroPointsBar = {
+      value: this.heroPoints,
+      max:   Math.max(this.heroPoints, this.lowestTrait),
+    };
+
+    // ── Wound derivations ──────────────────────────────────────────────────
+    // Toughness value = how many minor wounds per step - Cannot declare twice
+    // const toughness = this.combatAptitudes.toughness.value ?? 2;
+    // this.toughnessValue = toughness;
+
+    // Total minor wound slots = toughness × 4 steps
+    this.maxMinorTotal = toughness * 4;
+
+    // Count marked dramatic wounds
+    this.dramaticWoundCount = this.wounds.dramatic.filter(Boolean).length;
+
+    // Total wounds as a single number for token bars:
+    // Each dramatic wound = toughness minor wounds worth of damage
+    // Current minor + (dramatic × toughness) gives a continuous scale
+    this.woundTotal = this.wounds.minor + (this.dramaticWoundCount * toughness);
+
+    // Max possible wounds before helpless = toughness × 4
+    this.woundMax = toughness * 4;
   }
 }

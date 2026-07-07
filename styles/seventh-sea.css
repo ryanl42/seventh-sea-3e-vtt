@@ -985,3 +985,145 @@
   position: relative;
   z-index: 1;
 }
+
+/* ── Roll dialog additions ────────────────────────────── */
+.dialog-backlash-note {
+  color: #8b1a1a;
+  font-weight: bold;
+  font-size: 0.85em;
+}
+
+/* ── Expandable Advantages ────────────────────────────── */
+.adv-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.adv-header:hover {
+  background: rgba(184,134,11,0.06);
+  border-radius: 3px;
+}
+
+.adv-expand-icon {
+  font-size: 0.65em;
+  color: #8b7355;
+  width: 12px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.adv-expand-icon.expanded {
+  color: #b8860b;
+}
+
+.adv-body {
+  padding: 6px 8px 6px 24px;
+  border-top: 1px dashed #e0d0b0;
+  margin-top: 4px;
+}
+
+.adv-description {
+  font-size: 0.85em;
+  color: #3a2a1a;
+  line-height: 1.5;
+}
+
+.adv-description p { margin: 0 0 4px 0; }
+.adv-description strong { color: #2a1a0a; }
+.adv-description em { color: #5a3e28; }
+
+.adv-no-desc {
+  font-size: 0.8em;
+  font-style: italic;
+  color: #aaa;
+  margin: 0;
+}
+
+/* ── ProseMirror Rich Text ────────────────────────────── */
+.prosemirror-wrapper {
+  border: 1px solid #8b7355;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.6);
+  min-height: 120px;
+}
+
+.prosemirror-wrapper .editor-container {
+  min-height: 120px;
+}
+
+/* Style the ProseMirror content area to match sheet */
+.prosemirror-wrapper prose-mirror,
+.prosemirror-wrapper .ProseMirror {
+  font-family: "Palatino Linotype", Palatino, serif;
+  font-size: 0.88em;
+  color: #2a1a0a;
+  padding: 6px 8px;
+  min-height: 100px;
+  outline: none;
+}
+
+.prosemirror-wrapper .ProseMirror p { margin: 0 0 4px 0; }
+.prosemirror-wrapper .ProseMirror:focus { outline: none; }
+
+/* ── Sorcery layout fixes ─────────────────────────────── */
+.sorcery-tradition-block {
+  background: rgba(255,255,255,0.3);
+  border: 1px solid #c8b89a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.sorcery-tradition-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sorcery-tradition-name {
+  font-weight: bold;
+  font-size: 0.95em;
+  color: #2a1a0a;
+  flex-shrink: 0;
+}
+
+.sorcery-resource-control {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.sorcery-resource-label {
+  font-size: 0.85em;
+  color: #5a3e28;
+  font-weight: bold;
+}
+
+/* ── Biography textarea ───────────────────────────────── */
+.bio-textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #8b7355;
+  background: rgba(255,255,255,0.6);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-family: "Palatino Linotype", Palatino, serif;
+  font-size: 0.88em;
+  color: #2a1a0a;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.bio-textarea:focus {
+  outline: none;
+  border-color: #b8860b;
+  background: rgba(255,255,255,0.8);
+}

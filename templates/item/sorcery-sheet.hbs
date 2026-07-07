@@ -1,0 +1,49 @@
+{{!-- Sorcery Item Sheet --}}
+<div class="item-sheet sorcery-item-sheet">
+
+  <div class="item-header">
+    <img class="item-img" src="{{item.img}}" title="{{item.name}}" />
+    <div class="item-header-fields">
+
+      <div class="field-row">
+        <label>Name</label>
+        <input type="text" name="name" value="{{item.name}}"
+               {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+
+      <div class="field-row">
+        <label>Tradition</label>
+        <select name="system.tradition" {{#unless isEditable}}disabled{{/unless}}>
+          {{#each traditionChoices as |t|}}
+            <option value="{{t.id}}" {{#if (eq t.id ../system.tradition)}}selected{{/if}}>
+              {{t.label}}
+            </option>
+          {{/each}}
+        </select>
+      </div>
+
+      {{#if tradition}}
+      <div class="field-row">
+        <label>{{tradition.resourceLabel}}</label>
+        <input type="number" name="system.resource.value"
+               value="{{system.resource.value}}" min="0"
+               {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      {{/if}}
+
+    </div>
+  </div>
+
+  {{#if tradition}}
+  <div class="sorcery-item-desc">
+    <p class="tradition-description">{{tradition.description}}</p>
+  </div>
+  {{/if}}
+
+  <div class="item-description">
+    <label>Notes</label>
+    <textarea name="system.notes" rows="5"
+              {{#unless isEditable}}disabled{{/unless}}>{{system.notes}}</textarea>
+  </div>
+
+</div>

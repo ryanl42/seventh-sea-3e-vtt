@@ -1,17 +1,20 @@
 /**
- * 7th Sea 3e — Hero Sheet (Step 17 - Tabs)
+ * 7th Sea 3e — Hero Sheet (Step 19c)
+ * - Textarea biography/notes (reliable, ProseMirror deferred)
+ * - Direct event listeners for sorcery action buttons
+ * - Expandable advantages
  */
 
 import { SeventhSeaDice } from "../dice/dice.mjs";
-import { sorteRead, sorteWeaveMinor, sorteWeaveMajor, sorteReference } from "../sorcery/sorte.mjs";
+import { getTradition }   from "../sorcery/traditions.mjs";
 
 const { ActorSheetV2 }               = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
-  // Track active tab — default to skills
-  _activeTab = "skills";
+  _activeTab          = "skills";
+  _expandedAdvantages = new Set();
 
   static DEFAULT_OPTIONS = {
     classes:  ["seventh-sea", "actor-sheet", "hero"],
@@ -22,183 +25,251 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       closeOnSubmit:  false,
     },
     actions: {
-      // Tab switching
       switchTab:        HeroSheet._onSwitchTab,
-      // Rolls
       rollSkill:        HeroSheet._onRollSkill,
       rollAttack:       HeroSheet._onRollAttack,
       rollDefence:      HeroSheet._onRollDefence,
-      // Advantages
       createAdvantage:  HeroSheet._onCreateAdvantage,
       editAdvantage:    HeroSheet._onEditAdvantage,
       deleteAdvantage:  HeroSheet._onDeleteAdvantage,
-      // Hero Points
+      toggleAdvantage:  HeroSheet._onToggleAdvantage,
       adjustHeroPoints: HeroSheet._onAdjustHeroPoints,
-      // Sorcery
-      adjustBacklash:   HeroSheet._onAdjustBacklash,
-      sorteRead:        HeroSheet._onSorteRead,
-      sorteWeaveMinor:  HeroSheet._onSorteWeaveMinor,
-      sorteWeaveMajor:  HeroSheet._onSorteWeaveMajor,
-      sorteReference:   HeroSheet._onSorteReference,
+      createSorcery:    HeroSheet._onCreateSorcery,
+      editSorcery:      HeroSheet._onEditSorcery,
+      deleteSorcery:    HeroSheet._onDeleteSorcery,
+      adjustResource:   HeroSheet._onAdjustResource,
     },
   };
 
   static PARTS = {
-    header:  { template: "systems/seventh-sea-3e/templates/actor/hero-header.hbs" },
-    traits:  { template: "systems/seventh-sea-3e/templates/actor/hero-traits.hbs" },
-    tabs:    { template: "systems/seventh-sea-3e/templates/actor/hero-tabs.hbs" },
-    skills:  { template: "systems/seventh-sea-3e/templates/actor/hero-skills.hbs" },
-    combat:  { template: "systems/seventh-sea-3e/templates/actor/hero-combat.hbs" },
-    sorcery: { template: "systems/seventh-sea-3e/templates/actor/hero-sorcery.hbs" },
+    header:     { template: "systems/seventh-sea-3e/templates/actor/hero-header.hbs" },
+    traits:     { template: "systems/seventh-sea-3e/templates/actor/hero-traits.hbs" },
+    tabs:       { template: "systems/seventh-sea-3e/templates/actor/hero-tabs.hbs" },
+    skills:     { template: "systems/seventh-sea-3e/templates/actor/hero-skills.hbs" },
+    combat:     { template: "systems/seventh-sea-3e/templates/actor/hero-combat.hbs" },
+    sorcery:    { template: "systems/seventh-sea-3e/templates/actor/hero-sorcery.hbs" },
     advantages: { template: "systems/seventh-sea-3e/templates/actor/hero-advantages.hbs" },
     biography:  { template: "systems/seventh-sea-3e/templates/actor/hero-biography.hbs" },
   };
 
-  get title() {
-    return this.document.name;
-  }
+  get title() { return this.document.name; }
 
   async _prepareContext(options) {
+    const sorceryItems = this.document.items
+      .filter(i => i.type === "sorcery")
+      .map(item => {
+        const tradition = getTradition(item.system.tradition);
+        return {
+          id:             item.id,
+          traditionLabel: tradition?.label ?? item.system.tradition,
+          resourceLabel:  tradition?.resourceLabel ?? "Resource",
+          resourceValue:  item.system.resource.value,
+          actions: tradition
+            ? Object.entries(tradition.actions).map(([key, a]) => ({
+                key,
+                label:  a.label,
+                hint:   a.hint,
+                itemId: item.id,   // carried into each action so template can access it
+              }))
+            : [],
+        };
+      });
+
     return {
-      actor:      this.document,
-      system:     this.document.system,
-      isEditable: this.isEditable,
-      advantages: this.document.items.filter(i => i.type === "advantage"),
-      activeTab:  this._activeTab,
+      actor:        this.document,
+      system:       this.document.system,
+      isEditable:   this.isEditable,
+      advantages:   this.document.items.filter(i => i.type === "advantage"),
+      sorceryItems,
+      activeTab:    this._activeTab,
     };
   }
 
-  // Hide all tab panels then show the active one
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   _onRender(context, options) {
     super._onRender?.(context, options);
     this._applyTab();
+    this._applyExpandedAdvantages();
+    this._bindSorceryButtons();
   }
 
   _applyTab() {
-    const element = this.element;
-    if (!element) return;
-
-    // Hide all tab panels
-    element.querySelectorAll(".tab-panel").forEach(el => {
-      el.style.display = "none";
-    });
-
-    // Show active
-    const active = element.querySelector(`.tab-panel[data-tab="${this._activeTab}"]`);
+    const el = this.element;
+    if (!el) return;
+    el.querySelectorAll(".tab-panel").forEach(p => p.style.display = "none");
+    const active = el.querySelector(`.tab-panel[data-tab="${this._activeTab}"]`);
     if (active) active.style.display = "";
+    el.querySelectorAll(".sheet-tab-btn").forEach(btn =>
+      btn.classList.toggle("active", btn.dataset.tab === this._activeTab)
+    );
+  }
 
-    // Mark active tab button
-    element.querySelectorAll(".sheet-tab-btn").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.tab === this._activeTab);
+  _applyExpandedAdvantages() {
+    const el = this.element;
+    if (!el) return;
+    el.querySelectorAll(".advantage-item").forEach(item => {
+      const id      = item.dataset.advId;
+      const body    = item.querySelector(".adv-body");
+      const icon    = item.querySelector(".adv-expand-icon");
+      if (!body || !icon) return;
+      const expanded        = this._expandedAdvantages.has(id);
+      body.style.display    = expanded ? "" : "none";
+      icon.textContent      = expanded ? "▼" : "▶";
+      icon.classList.toggle("expanded", expanded);
     });
   }
 
-  // ── Tab switching ──────────────────────────────────────────────────────────
+  // Bind sorcery action buttons directly — bypasses ApplicationV2 action delegation
+  _bindSorceryButtons() {
+    const el = this.element;
+    if (!el) return;
+
+    el.querySelectorAll(".js-sorte-action").forEach(btn => {
+      // Clone to remove any stale listeners from previous renders
+      const fresh = btn.cloneNode(true);
+      btn.replaceWith(fresh);
+
+      fresh.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const itemId     = fresh.dataset.itemId;
+        const sorteAction = fresh.dataset.sorteAction;
+        const item       = this.document.items.get(itemId);
+        if (!item) { console.warn("7thSea3e | Sorcery item not found:", itemId); return; }
+
+        const tradition = getTradition(item.system.tradition);
+        const action    = tradition?.actions?.[sorteAction];
+        if (!action?.fn) { console.warn("7thSea3e | No fn for action:", sorteAction); return; }
+
+        await action.fn(this.document, item);
+      });
+    });
+  }
+
+  // ── Tab ────────────────────────────────────────────────────────────────────
 
   static _onSwitchTab(event, target) {
     this._activeTab = target.dataset.tab;
     this._applyTab();
   }
 
+  // ── Advantage toggle ───────────────────────────────────────────────────────
+
+  static _onToggleAdvantage(event, target) {
+    if (event.target.closest(".adv-controls")) return;
+    const id = target.dataset.advId;
+    if (this._expandedAdvantages.has(id)) {
+      this._expandedAdvantages.delete(id);
+    } else {
+      this._expandedAdvantages.add(id);
+    }
+    this._applyExpandedAdvantages();
+  }
+
   // ── Skill roll ─────────────────────────────────────────────────────────────
 
   static async _onRollSkill(event, target) {
     const skillKey = target.dataset.skill;
-    const traitKey = target.dataset.trait;
     const system   = this.document.system;
     const skill    = system.skills[skillKey];
-    const traitVal = system.traits[traitKey]?.value ?? 0;
     if (!skill) return;
 
-    const backlash = system.sorcery?.backlash ?? 0;
-    const pool     = Math.max(1, traitVal + skill.value - backlash);
-
     await SeventhSeaDice.roll({
-      actor:     this.document,
-      label:     `${target.dataset.label} (${traitKey} + ${skillKey})${backlash > 0 ? ` [−${backlash} Backlash]` : ""}`,
-      poolSize:  pool,
-      skillRank: skill.value,
-      specialty: skill.specialty,
-      difficulty: 2,
+      actor:        this.document,
+      label:        target.dataset.label,
+      skillKey,
+      skillRank:    skill.value,
+      specialty:    skill.specialty,
+      difficulty:   2,
+      defaultTrait: target.dataset.trait,
     });
   }
 
-  // ── Attack roll ────────────────────────────────────────────────────────────
+  // ── Attack / Defence ───────────────────────────────────────────────────────
 
-  static async _onRollAttack(event, target) {
-    const system   = this.document.system;
-    const apt      = system.combatAptitudes.attack;
-    const traitVal = apt.trait ? (system.traits[apt.trait]?.value ?? 0) : 0;
-    const skillVal = Math.max(system.skills.melee?.value ?? 0, system.skills.aim?.value ?? 0);
-    const backlash = system.sorcery?.backlash ?? 0;
+  static async _onRollAttack() {
+    const apt    = this.document.system.combatAptitudes.attack;
+    const target = _getFirstTarget();
+    const diff   = _aptitudeValue(target, "defence") ?? 2;
+    const diffLabel = target
+      ? ` vs ${target.name} (Defence ${diff})`
+      : "";
 
-    if (!apt.trait) {
-      ui.notifications.warn("Assign a Trait to Attack before rolling.");
-      return;
-    }
-
-    await SeventhSeaDice.roll({
-      actor:     this.document,
-      label:     `Attack (${apt.trait} + combat skill)${backlash > 0 ? ` [−${backlash} Backlash]` : ""}`,
-      poolSize:  Math.max(1, traitVal + skillVal - backlash),
-      skillRank: skillVal,
-      specialty: false,
-      difficulty: 2,
+    await SeventhSeaDice.rollCombat({
+      actor:         this.document,
+      label:         "Attack" + diffLabel,
+      aptitudeTrait: apt.trait || null,
+      difficulty:    diff,
+      skillChoices:  ["melee", "aim", "athletics"],
     });
   }
 
-  // ── Defence roll ───────────────────────────────────────────────────────────
+  static async _onRollDefence() {
+    const apt    = this.document.system.combatAptitudes.defence;
+    const target = _getFirstTarget();
+    const diff   = _aptitudeValue(target, "attack") ?? 2;
+    const diffLabel = target
+      ? ` vs ${target.name} (Attack ${diff})`
+      : "";
 
-  static async _onRollDefence(event, target) {
-    const system   = this.document.system;
-    const apt      = system.combatAptitudes.defence;
-    const traitVal = apt.trait ? (system.traits[apt.trait]?.value ?? 0) : 0;
-    const skillVal = Math.max(system.skills.melee?.value ?? 0, system.skills.athletics?.value ?? 0);
-    const backlash = system.sorcery?.backlash ?? 0;
-
-    if (!apt.trait) {
-      ui.notifications.warn("Assign a Trait to Defence before rolling.");
-      return;
-    }
-
-    await SeventhSeaDice.roll({
-      actor:     this.document,
-      label:     `Defence (${apt.trait} + combat skill)${backlash > 0 ? ` [−${backlash} Backlash]` : ""}`,
-      poolSize:  Math.max(1, traitVal + skillVal - backlash),
-      skillRank: skillVal,
-      specialty: false,
-      difficulty: 2,
+    await SeventhSeaDice.rollCombat({
+      actor:         this.document,
+      label:         "Defence" + diffLabel,
+      aptitudeTrait: apt.trait || null,
+      difficulty:    diff,
+      skillChoices:  ["melee", "athletics", "aim"],
     });
   }
 
   // ── Sorcery ────────────────────────────────────────────────────────────────
 
-  static async _onAdjustBacklash(event, target) {
-    const delta   = Number(target.dataset.delta) || 0;
-    const current = this.document.system.sorcery.backlash;
-    const next    = Math.max(0, current + delta);
+  static async _onCreateSorcery() {
+    await Item.create(
+      { name: "Sorte Strega", type: "sorcery",
+        system: { tradition: "sorte", resource: { label: "Backlash", value: 0 } } },
+      { parent: this.document }
+    );
+  }
 
-    if (delta < 0 && current > 0) {
+  static async _onEditSorcery(event, target) {
+    this.document.items.get(target.dataset.itemId)?.sheet?.render(true);
+  }
+
+  static async _onDeleteSorcery(event, target) {
+    const item = this.document.items.get(target.dataset.itemId);
+    if (!item) return;
+    const confirmed = await Dialog.confirm({
+      title:   "Remove Tradition",
+      content: `<p>Remove <strong>${item.name}</strong>?</p>`,
+    });
+    if (confirmed) await item.delete();
+  }
+
+  static async _onAdjustResource(event, target) {
+    const item      = this.document.items.get(target.dataset.itemId);
+    const delta     = Number(target.dataset.delta) || 0;
+    if (!item) return;
+    const current   = item.system.resource.value;
+    const next      = Math.max(0, current + delta);
+    const tradition = getTradition(item.system.tradition);
+
+    if (delta < 0 && current > 0 && tradition?.resourceLabel === "Backlash") {
       const confirmed = await Dialog.confirm({
         title:   "Clear Backlash",
         content: "<p>Clear 1 Backlash by taking <strong>1 Wound</strong>?</p>",
       });
       if (!confirmed) return;
       const minor = this.document.system.wounds.minor;
-      await this.document.update({
-        "system.sorcery.backlash": next,
-        "system.wounds.minor":     minor + 1,
-      });
+      await Promise.all([
+        item.update({ "system.resource.value": next }),
+        this.document.update({ "system.wounds.minor": minor + 1 }),
+      ]);
       return;
     }
-
-    await this.document.update({ "system.sorcery.backlash": next });
+    await item.update({ "system.resource.value": next });
   }
-
-  static async _onSorteRead()       { await sorteRead(this.document); }
-  static async _onSorteWeaveMinor() { await sorteWeaveMinor(this.document); }
-  static async _onSorteWeaveMajor() { await sorteWeaveMajor(this.document); }
-  static async _onSorteReference()  { await sorteReference(this.document); }
 
   // ── Advantages ─────────────────────────────────────────────────────────────
 
@@ -222,4 +293,28 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const current = this.document.system.heroPoints;
     await this.document.update({ "system.heroPoints": Math.max(0, current + delta) });
   }
+}
+
+// ── Module-level helper ────────────────────────────────────────────────────────
+/**
+ * Returns the Actor of the first targeted token, or null if nothing is targeted.
+ * Used to auto-populate Difficulty from the target's opposing aptitude.
+ */
+function _getFirstTarget() {
+  const target = game.user.targets.first();
+  return target?.actor ?? null;
+}
+
+/**
+ * Reads a combat aptitude value from either a Hero actor (object with .value)
+ * or an NPC actor (flat number), returning a clean integer.
+ */
+function _aptitudeValue(actor, aptitudeKey) {
+  if (!actor) return null;
+  const apt = actor.system?.combatAptitudes?.[aptitudeKey];
+  if (apt === undefined || apt === null) return null;
+  // Hero: { trait: "finesse", value: 3 } — NPC: flat number
+  if (typeof apt === "object") return apt.value ?? null;
+  if (typeof apt === "number") return apt;
+  return null;
 }

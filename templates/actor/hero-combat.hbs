@@ -120,7 +120,7 @@
   {{!-- Wounds --}}
   <div class="section-heading" style="margin-top:16px;">Wounds</div>
   <p class="hint">
-    Toughness value = Minor Wounds before a Dramatic Wound.
+    Toughness {{system.toughnessValue}} — every {{system.toughnessValue}} Minor Wounds become 1 Dramatic Wound.
     4 Dramatic Wounds = Helpless.
   </p>
 
@@ -132,7 +132,7 @@
         <input type="number" name="system.wounds.minor"
                value="{{system.wounds.minor}}" min="0"
                {{#unless isEditable}}disabled{{/unless}} />
-        <span class="wounds-caption">/ {{system.combatAptitudes.toughness.value}} before Dramatic</span>
+        <span class="wounds-caption">/ {{system.toughnessValue}} before Dramatic</span>
       </div>
     </div>
 

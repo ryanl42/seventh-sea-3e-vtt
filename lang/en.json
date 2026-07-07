@@ -4,6 +4,7 @@
     "TypeNpc": "NPC"
   },
   "ITEM": {
-    "TypeAdvantage": "Advantage"
+    "TypeAdvantage": "Advantage",
+    "TypeSorcery": "Sorcery Tradition"
   }
 }

@@ -1,82 +1,70 @@
 <div class="tab-panel" data-tab="sorcery">
-{{!-- Sorte Strega Panel --}}
 <div class="sorcery-panel">
 
-  <div class="section-heading">Sorte Strega</div>
-
-  <div class="sorcery-toggle-row">
-    <label class="sorcery-toggle-label">
-      <input type="checkbox" name="system.sorcery.isSorteStrega"
-             {{#if system.sorcery.isSorteStrega}}checked{{/if}}
-             {{#unless isEditable}}disabled{{/unless}} />
-      This character is a Sorte Strega
-    </label>
+  <div class="section-heading-row">
+    <div class="section-heading">Sorcery</div>
+    {{#if isEditable}}
+    <button type="button" class="create-advantage-btn" data-action="createSorcery">+ Add Tradition</button>
+    {{/if}}
   </div>
 
-  {{#if system.sorcery.isSorteStrega}}
+  {{#if sorceryItems.length}}
+    {{#each sorceryItems as |s|}}
+    <div class="sorcery-tradition-block">
 
-  <div class="backlash-row">
-    <div class="backlash-label">
-      <span>Backlash</span>
-      <span class="backlash-hint">Each removes 1 die from rolls. Clear by taking 1 Wound per Backlash.</span>
-    </div>
-    <div class="backlash-controls">
-      {{#if isEditable}}
-      <button type="button" class="backlash-btn" data-action="adjustBacklash" data-delta="-1"
-              title="Clear 1 Backlash (take 1 Wound)">−</button>
+      <div class="sorcery-tradition-header">
+        <span class="sorcery-tradition-name">{{s.traditionLabel}}</span>
+
+        <div class="sorcery-resource-control">
+          <span class="sorcery-resource-label">{{s.resourceLabel}}:</span>
+          {{#if ../isEditable}}
+          <button type="button" class="backlash-btn"
+                  data-action="adjustResource"
+                  data-item-id="{{s.id}}"
+                  data-delta="-1">−</button>
+          {{/if}}
+          <span class="backlash-value {{#if s.resourceValue}}backlash-active{{/if}}">
+            {{s.resourceValue}}
+          </span>
+          {{#if ../isEditable}}
+          <button type="button" class="backlash-btn"
+                  data-action="adjustResource"
+                  data-item-id="{{s.id}}"
+                  data-delta="1">+</button>
+          {{/if}}
+        </div>
+
+        {{#if ../isEditable}}
+        <div class="adv-controls">
+          <a data-action="editSorcery" data-item-id="{{s.id}}" title="Edit">✎</a>
+          <a data-action="deleteSorcery" data-item-id="{{s.id}}" title="Delete">✕</a>
+        </div>
+        {{/if}}
+      </div>
+
+      {{#if s.resourceValue}}
+      <p class="backlash-warning">⚠ −{{s.resourceValue}} die{{#if (gt s.resourceValue 1)}}ce{{/if}} on all rolls</p>
       {{/if}}
-      <span class="backlash-value {{#if system.sorcery.backlash}}backlash-active{{/if}}">
-        {{system.sorcery.backlash}}
-      </span>
-      {{#if isEditable}}
-      <button type="button" class="backlash-btn" data-action="adjustBacklash" data-delta="1"
-              title="Gain 1 Backlash">+</button>
-      {{/if}}
+
+      <div class="sorte-actions">
+        {{!-- Each action already carries itemId from _prepareContext --}}
+        {{#each s.actions as |action|}}
+        <div class="sorte-action-row">
+          <button type="button"
+                  class="sorte-btn js-sorte-action"
+                  data-item-id="{{action.itemId}}"
+                  data-sorte-action="{{action.key}}">
+            {{action.label}}
+          </button>
+          <span class="sorte-action-desc">{{action.hint}}</span>
+        </div>
+        {{/each}}
+      </div>
+
     </div>
-  </div>
-
-  {{#if system.sorcery.backlash}}
-  <p class="backlash-warning">
-    ⚠ −{{system.sorcery.backlash}} die{{#if (gt system.sorcery.backlash 1)}}ce{{/if}} on all rolls
-  </p>
-  {{/if}}
-
-  <div class="sorte-actions">
-    <div class="section-heading" style="margin-top:12px;">Sorte Actions</div>
-
-    <div class="sorte-action-row">
-      <button type="button" class="sorte-btn" data-action="sorteRead"
-              title="Roll Wits + Sorcery to read Fate threads">
-        👁 Read Threads
-      </button>
-      <span class="sorte-action-desc">Wits + Sorcery — free, reveals links &amp; Arcana</span>
-    </div>
-
-    <div class="sorte-action-row">
-      <button type="button" class="sorte-btn sorte-minor" data-action="sorteWeaveMinor"
-              title="Activate a Minor Arcana (1 HP or 1 Backlash)">
-        ◈ Minor Arcana
-      </button>
-      <span class="sorte-action-desc">Costs 1 Hero Point or 1 Backlash</span>
-    </div>
-
-    <div class="sorte-action-row">
-      <button type="button" class="sorte-btn sorte-major" data-action="sorteWeaveMajor"
-              title="Activate a Major Arcana (1 Backlash)">
-        ★ Major Arcana
-      </button>
-      <span class="sorte-action-desc">Always costs 1 Backlash</span>
-    </div>
-
-    <div class="sorte-action-row">
-      <button type="button" class="sorte-btn sorte-ref" data-action="sorteReference"
-              title="Post Arcana reference card to chat">
-        📖 Arcana Reference
-      </button>
-      <span class="sorte-action-desc">Post all Arcana effects to chat</span>
-    </div>
-  </div>
-
+    {{/each}}
+  {{else}}
+    <p class="empty-list">No sorcery traditions. Click "+ Add Tradition" to add one.</p>
   {{/if}}
 
 </div>

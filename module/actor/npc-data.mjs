@@ -59,5 +59,11 @@ export class NpcData extends foundry.abstract.TypeDataModel {
     // Helpless threshold: Henchmen at 2 Dramatic Wounds, others at 4
     this.dramaticWoundLimit = this.npcType === "henchman" ? 2 : 4;
     this.dramaticWoundCount = this.wounds.dramatic.filter(Boolean).length;
+
+    // Token bar values
+    const toughness      = this.combatAptitudes.toughness ?? 2;
+    this.toughnessValue  = toughness;
+    this.woundTotal      = this.wounds.minor + (this.dramaticWoundCount * toughness);
+    this.woundMax        = toughness * this.dramaticWoundLimit;
   }
 }

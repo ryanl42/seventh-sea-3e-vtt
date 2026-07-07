@@ -1,18 +1,21 @@
 <div class="tab-panel" data-tab="biography">
-{{!-- Biography Panel --}}
 <div class="biography-panel">
-  <div class="section-heading">Biography</div>
 
   <div class="bio-field">
     <label>Biography</label>
-    <textarea name="system.biography" rows="4"
+    <textarea name="system.biography"
+              class="bio-textarea"
+              rows="8"
               {{#unless isEditable}}disabled{{/unless}}>{{system.biography}}</textarea>
   </div>
 
   <div class="bio-field">
     <label>Notes</label>
-    <textarea name="system.notes" rows="4"
+    <textarea name="system.notes"
+              class="bio-textarea"
+              rows="8"
               {{#unless isEditable}}disabled{{/unless}}>{{system.notes}}</textarea>
   </div>
+
 </div>
 </div>
