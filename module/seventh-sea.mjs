@@ -58,8 +58,9 @@ Hooks.once("init", () => {
   registerHandlebarsHelpers();
   registerVillainySetting();
   registerVillainPointChatListeners();
+  registerDramaticWoundHelplessHook();
 
-  console.log("7thSea3e | init complete");
+    console.log("7thSea3e | init complete");
 });
 
 Hooks.once("ready", () => {
@@ -67,6 +68,24 @@ Hooks.once("ready", () => {
   initVillainHUD();
   console.log("7thSea3e | ready fired");
 });
+
+// ── Dramatic Wound dice — "Helpless" resolves at the start of the next turn ───
+// When a Dramatic Wound die rolls a 1, the character is marked Helpless for
+// their next turn (they may still take Reactions). That status is applied for
+// the duration of that one upcoming turn and clears automatically once combat
+// advances to — and then past — them.
+function registerDramaticWoundHelplessHook() {
+  Hooks.on("updateCombat", async (combat, changed) => {
+    if (!("turn" in changed) && !("round" in changed)) return;
+
+    const actor = combat.combatant?.actor;
+    if (!actor) return;
+    if (!actor.system?.wounds?.dramaticWoundHelpless) return;
+
+    ui.notifications.warn(`${actor.name} is Helpless this turn from a Dramatic Wound — they may only take Reactions.`);
+    await actor.update({ "system.wounds.dramaticWoundHelpless": false });
+  });
+}
 
 // ── Token right-click context menu — Apply Wounds ─────────────────────────────
 Hooks.on("getActorContextOptions", (html, options) => {

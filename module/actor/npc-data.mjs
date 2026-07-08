@@ -38,6 +38,7 @@ export class NpcData extends foundry.abstract.TypeDataModel {
           { initial: [false, false, false, false] }
         ),
         helpless: new fields.BooleanField({ initial: false }),
+        dramaticWoundHelpless: new fields.BooleanField({ initial: false }),
       }),
 
       // ── Extended Action tracker (Brute Squads) ──────────────────────────

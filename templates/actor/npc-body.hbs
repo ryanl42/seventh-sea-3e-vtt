@@ -109,6 +109,13 @@
            {{#unless isEditable}}disabled{{/unless}} />
   </div>
 
+  {{#if system.wounds.dramaticWoundHelpless}}
+    <div class="wound-field">
+      <label>Next Turn</label>
+      <span class="helpless-flag">⚠ Helpless next turn (Dramatic Wound die rolled a 1) — Reactions only</span>
+    </div>
+  {{/if}}
+
   <div class="section-heading">Notes</div>
   <textarea name="system.notes" rows="4"
             {{#unless isEditable}}disabled{{/unless}}>{{system.notes}}</textarea>

@@ -43,7 +43,7 @@ export class SeventhSeaDice {
     return SeventhSeaDice._resolveRoll({
       actor, label: `${label} [${chosenTrait}]`,
       finalPool, skillRank, specialty, finalDifficulty,
-      extraDice, forceFate,
+      extraDice, forceFate, includeDramaticWounds: false,
     });
   }
 
@@ -80,7 +80,7 @@ export class SeventhSeaDice {
     return SeventhSeaDice._resolveRoll({
       actor, label: `${label} [${chosenTrait} + ${chosenSkill}]`,
       finalPool, skillRank: skillVal, specialty, finalDifficulty,
-      extraDice, forceFate,
+      extraDice, forceFate, includeDramaticWounds: true,
     });
   }
 
@@ -210,6 +210,7 @@ export class SeventhSeaDice {
 
   static async _resolveRoll({
     actor, label, finalPool, skillRank, specialty, finalDifficulty, extraDice, forceFate,
+    includeDramaticWounds = false,
   }) {
     const threshold = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeOn = specialty ? 9 : 10;
@@ -224,7 +225,26 @@ export class SeventhSeaDice {
       pending = faces.filter(f => f >= explodeOn).length;
     }
 
-    const hits      = allFaces.filter(f => f >= threshold).length;
+    const woundDiceCount = includeDramaticWounds ? (actor?.system?.dramaticWoundCount ?? 0) : 0;
+    const woundFaces      = [];
+    let woundDicePending  = woundDiceCount;
+    let dramaticWoundHelplessTriggered = false;
+    while (woundDicePending > 0) {
+      const r = new Roll(`${woundDicePending}d10`);
+      await r.evaluate();
+      const faces = r.dice[0].results.map(res => res.result);
+      woundFaces.push(...faces);
+      if (faces.some(f => f === 1)) dramaticWoundHelplessTriggered = true;
+      woundDicePending = faces.filter(f => f >= 10).length;
+    }
+
+    if (dramaticWoundHelplessTriggered && actor) {
+      await actor.update({ "system.wounds.dramaticWoundHelpless": true });
+      ui.notifications.warn(`${actor.name} suffers a 1 on a Dramatic Wound die — Helpless on their next turn (Reactions only)!`);
+    }
+
+    const combinedFaces = [...allFaces, ...woundFaces];
+    const hits      = combinedFaces.filter(f => f >= threshold).length;
     let success     = hits >= finalDifficulty;
     let extraHits   = Math.max(0, hits - finalDifficulty);
     let vpGained    = 0;
@@ -245,23 +265,32 @@ export class SeventhSeaDice {
     }
 
     await SeventhSeaDice._postChatCard({
-      actor, label, allFaces, threshold, specialty,
+      actor, label, allFaces, woundFaces, threshold, specialty,
       finalDifficulty, hits, success, extraHits,
       hpGained, extraDice, forced, vpGained,
+      dramaticWoundHelplessTriggered,
     });
 
-    return { hits, success, extraHits, hpGained, forced, finalDifficulty };
+    return {
+      hits, success, extraHits, hpGained, forced, finalDifficulty,
+      dramaticWoundHelplessTriggered,
+    };
   }
 
   // ── Chat card ──────────────────────────────────────────────────────────────
 
   static async _postChatCard({
-    actor, label, allFaces, threshold, specialty,
+    actor, label, allFaces, woundFaces = [], threshold, specialty,
     finalDifficulty, hits, success, extraHits,
     hpGained, extraDice, forced, vpGained,
+    dramaticWoundHelplessTriggered = false,
   }) {
     const diceHtml = allFaces.map(f =>
       `<span class="die ${f >= threshold ? "hit" : ""}">${f}</span>`
+    ).join("");
+
+    const woundDiceHtml = woundFaces.map(f =>
+      `<span class="die wound-die ${f >= threshold ? "hit" : ""} ${f === 1 ? "wound-die-helpless" : ""}" title="Dramatic Wound die">${f}</span>`
     ).join("");
 
     let footer = "";
@@ -269,6 +298,13 @@ export class SeventhSeaDice {
     if (hpGained > 0)  footer += `<div class="chat-roll-footer hp-gained">+${hpGained} Hero Point${hpGained > 1 ? "s" : ""} gained</div>`;
     if (forced)        footer += `<div class="chat-roll-footer force-fate">⚖ Force Fate — GM gains ${vpGained} VP</div>`;
     if (specialty)     footer += `<div class="chat-roll-footer">◈ Specialty active</div>`;
+
+    if (woundFaces.length > 0) {
+      footer += `<div class="chat-roll-footer">${woundFaces.length} Dramatic Wound di${woundFaces.length > 1 ? "ce" : "e"} rolled (explode on 10)</div>`;
+    }
+    if (dramaticWoundHelplessTriggered) {
+      footer += `<div class="chat-roll-footer result-failure">⚠ A Dramatic Wound die rolled a 1 — Helpless next turn (Reactions only)!</div>`;
+    }
 
     const resultText = forced ? "⚖ FORCED" : success ? "✓ SUCCESS" : "✗ FAILURE";
 
@@ -278,7 +314,7 @@ export class SeventhSeaDice {
       content: `
         <div class="seventh-sea chat-roll">
           <div class="chat-roll-label">${label}</div>
-          <div class="chat-roll-dice">${diceHtml}</div>
+          <div class="chat-roll-dice">${diceHtml}${woundDiceHtml}</div>
           <div class="chat-roll-summary">
             Hits: <strong>${hits}</strong> vs Difficulty <strong>${finalDifficulty}</strong>
             — <span class="${success ? "result-success" : "result-failure"} ${forced ? "result-forced" : ""}">

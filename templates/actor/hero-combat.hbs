@@ -161,7 +161,14 @@
         {{/if}}
       </div>
     </div>
-
+    {{#if system.wounds.dramaticWoundHelpless}}
+      <div class="wounds-row helpless-row is-helpless">
+        <div class="wounds-label">Next Turn</div>
+        <div class="wounds-controls">
+          <span class="helpless-flag">⚠ Helpless next turn (Dramatic Wound die rolled a 1) — Reactions only</span>
+        </div>
+      </div>
+    {{/if}}
   </div>
 
 </div>

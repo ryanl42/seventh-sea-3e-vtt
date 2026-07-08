@@ -57,6 +57,7 @@ export class HeroData extends foundry.abstract.TypeDataModel {
           { initial: [false, false, false, false] }
         ),
         helpless: new fields.BooleanField({ initial: false }),
+        dramaticWoundHelpless: new fields.BooleanField({ initial: false }),
       }),
 
       heroPoints: new fields.NumberField({ integer: true, min: 0, initial: 1 }),

@@ -677,13 +677,23 @@
 }
 
 .chat-roll-dice .die.hit { background: #2e7d32; color: white; border-color: #1b5e20; }
-
+.chat-roll-dice .die.wound-die {
+  border: 2px solid #8b1a1a;
+  box-shadow: inset 0 0 0 1px #e8d9b8;
+}
+.chat-roll-dice .die.wound-die.hit { background: #2e7d32; color: white; }
+.chat-roll-dice .die.wound-die-helpless {
+  background: #8b1a1a;
+  color: white;
+  border-color: #4a0d0d;
+}
 .chat-roll-summary { font-size: 0.9em; color: #2a1a0a; }
 .result-success { color: #2e7d32; font-weight: bold; }
 .result-failure { color: #8b1a1a; font-weight: bold; }
 .extra-hits { color: #b8860b; font-size: 0.85em; margin-left: 4px; }
 .chat-roll-footer { font-size: 0.8em; color: #6a5a44; font-style: italic; margin-top: 3px; }
 .chat-roll-footer.hp-gained { color: #2e7d32; font-weight: bold; font-style: normal; }
+.chat-roll-footer.result-failure { font-style: normal; font-weight: bold; }
 
 /* Villain Point damage chat prompt */
 .chat-vp-prompt .vp-prompt-text {
