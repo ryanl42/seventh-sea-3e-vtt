@@ -16,6 +16,9 @@ export class NPCSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       submitOnChange: true,
       closeOnSubmit:  false,
     },
+    actions: {
+      toggleWoundTrack: NPCSheet._onToggleWoundTrack,
+    },
   };
 
   static PARTS = {
@@ -33,5 +36,19 @@ export class NPCSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       system:     this.document.system,
       isEditable: this.isEditable,
     };
+  }
+  // ── Wound track (dots + Dramatic Wound pips) ────────────────────────────
+  // Henchmen/Villains only — Brute Squads use the header's Brute Count field
+  // directly and don't have a Toughness-based track.
+  static async _onToggleWoundTrack(event, target) {
+    const flatIndex     = Number(target.dataset.index);
+    const actor         = this.document;
+    const dramaticLimit = actor.system.dramaticWoundLimit ?? 4;
+    const toughness     = actor._toughnessValue();
+    const dramaticCount = actor.system.wounds.dramatic.filter(Boolean).length;
+    const currentTotal  = dramaticCount * (toughness + 1) + actor.system.wounds.minor;
+    const newTotal       = flatIndex === currentTotal - 1 ? flatIndex : flatIndex + 1;
+
+    await actor.setWoundLevel(newTotal, { dramaticLimit });
   }
 }

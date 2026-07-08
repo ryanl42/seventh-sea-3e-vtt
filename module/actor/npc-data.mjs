@@ -2,6 +2,7 @@
  * 7th Sea 3e — NPC Data Model (Step 2)
  * Covers Brutes, Henchmen, and Villains.
  */
+import { computeWoundTrack } from "../combat/wound-track.mjs";
 const { fields } = foundry.data;
 
 export class NpcData extends foundry.abstract.TypeDataModel {
@@ -73,15 +74,16 @@ export class NpcData extends foundry.abstract.TypeDataModel {
       const dramatic    = this.wounds.dramatic.slice(0, this.dramaticWoundLimit);
       const activeIndex = dramatic.findIndex(marked => !marked);
       this.wounds.trackLength = toughness;
-      this.wounds.track = dramatic.map((marked, segIndex) => {
-        const isActive = segIndex === activeIndex;
-        const dots = Array.from({ length: toughness }, (_, dotIndex) => {
-          if (marked)   return true;
-          if (isActive) return dotIndex < this.wounds.minor;
-          return false;
-        });
-        return { dots, marked, active: isActive };
-      });
+      // this.wounds.track = dramatic.map((marked, segIndex) => {
+      //   const isActive = segIndex === activeIndex;
+      //   const dots = Array.from({ length: toughness }, (_, dotIndex) => {
+      //     if (marked)   return true;
+      //     if (isActive) return dotIndex < this.wounds.minor;
+      //     return false;
+      //   });
+      //   return { dots, marked, active: isActive };
+      // });
+      this.wounds.track = computeWoundTrack(toughness, this.wounds.minor, this.wounds.dramatic, this.dramaticWoundLimit);
     }
   }
 }

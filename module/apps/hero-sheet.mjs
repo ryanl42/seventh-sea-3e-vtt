@@ -30,7 +30,8 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollSkill:        HeroSheet._onRollSkill,
       rollAttack:       HeroSheet._onRollAttack,
       rollDefence:      HeroSheet._onRollDefence,
-      toggleMinorWound: HeroSheet._onToggleMinorWound,
+      // toggleMinorWound: HeroSheet._onToggleMinorWound,
+      toggleWoundTrack: HeroSheet._onToggleWoundTrack,
       // Advantages
       createAdvantage:  HeroSheet._onCreateAdvantage,
       editAdvantage:    HeroSheet._onEditAdvantage,
@@ -209,7 +210,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     if (result?.success && target?.type === "npc") {
-      await this._applyAttackDamage(target);
+      await this._applyAttackDamage(target, result);
     }
   }
 
@@ -244,7 +245,14 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ── Apply damage from a successful Attack ──────────────────────────────────
   // Wounds dealt = the Hero's Damage aptitude value, plus any Hero Points the
   // player chooses to spend (1 HP = +1 wound).
-  async _applyAttackDamage(npcActor) {
+  async _applyAttackDamage(npcActor, result) {
+      if (npcActor.system.npcType === "brute") {
+        const hits = result?.hits ?? 0;
+        if (hits <= 0) return;
+        await npcActor.applyWounds(hits, { dramaticLimit: npcActor.system.dramaticWoundLimit ?? 4 });
+        return;
+      }
+
     const system  = this.document.system;
     const baseDmg = system.combatAptitudes.damage.value ?? 0;
 
@@ -332,11 +340,20 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ── Minor Wound dot track ───────────────────────────────────────────────────
 
-  static async _onToggleMinorWound(event, target) {
-    const index   = Number(target.dataset.index);
-    const current = this.document.system.wounds.minor;
-    const next    = current === index + 1 ? index : index + 1;
-    await this.document.update({ "system.wounds.minor": next });
+  // static async _onToggleMinorWound(event, target) {
+  //   const index   = Number(target.dataset.index);
+  //   const current = this.document.system.wounds.minor;
+  //   const next    = current === index + 1 ? index : index + 1;
+  //   await this.document.update({ "system.wounds.minor": next });
+  static async _onToggleWoundTrack(event, target) {
+    const flatIndex     = Number(target.dataset.index);
+    const actor         = this.document;
+    const toughness     = actor._toughnessValue();
+    const dramaticCount = actor.system.wounds.dramatic.filter(Boolean).length;
+    const currentTotal  = dramaticCount * (toughness + 1) + actor.system.wounds.minor;
+    const newTotal       = flatIndex === currentTotal - 1 ? flatIndex : flatIndex + 1;
+
+    await actor.setWoundLevel(newTotal, { dramaticLimit: 4 });
   }
 
   static async _onAdjustResource(event, target) {

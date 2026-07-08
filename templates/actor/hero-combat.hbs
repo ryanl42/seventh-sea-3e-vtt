@@ -134,16 +134,13 @@
         {{#each system.wounds.track}}
         <div class="wound-segment">
           {{#each this.dots}}
-          <span class="wound-dot {{#if this}}wound-dot-filled{{/if}} {{#unless ../../isEditable}}wound-dot-readonly{{/unless}}"
-                {{#if ../active}}{{#if ../../isEditable}}data-action="toggleMinorWound" data-index="{{@index}}"{{/if}}{{/if}}
-                title="Minor Wound {{@index}} + 1"></span>
+          <span class="wound-dot {{#if this.filled}}wound-dot-filled{{/if}} {{#unless ../../isEditable}}wound-dot-readonly{{/unless}}"
++           {{#if ../../isEditable}}data-action="toggleWoundTrack" data-index="{{this.flatIndex}}"{{/if}}
++           title="Wound {{this.flatIndex}}"></span>
           {{/each}}
-          <label class="dw-box {{#if this.marked}}dw-marked{{/if}}">
-            <input type="checkbox" name="system.wounds.dramatic.{{@index}}"
-                   {{#if this.marked}}checked{{/if}}
-                   {{#unless ../isEditable}}disabled{{/unless}} />
-            <span class="dw-star">★</span>
-          </label>
+          <span class="wound-dot wound-dot-dramatic {{#if this.marked}}wound-dot-filled{{/if}} {{#unless ../isEditable}}wound-dot-readonly{{/unless}}"
+                {{#if ../isEditable}}data-action="toggleWoundTrack" data-index="{{this.dramaticFlatIndex}}"{{/if}}
+                title="Dramatic Wound {{this.dramaticFlatIndex}}">★</span>
         </div>
         {{/each}}
         {{else}}

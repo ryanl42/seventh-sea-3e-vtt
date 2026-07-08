@@ -397,56 +397,27 @@
   transform: none;
 }
 
-.dw-box {
-  display: flex;
-  flex-direction: column;
+.wound-dot-dramatic {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: inline-flex;
   align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  width: 44px;
-  padding: 6px 4px;
-  border: 2px solid #c8b89a;
-  border-radius: 6px;
-  background: #f5ead5;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.dw-box input[type="checkbox"] {
-  display: none;
-}
-
-.dw-star {
-  font-size: 1.4em;
-  color: #ccc;
+  justify-content: center;
+  font-size: 0.85em;
   line-height: 1;
+  color: #ccc;
+  border-color: #c8b89a;
 }
 
-.dw-num {
-  font-size: 0.7em;
-  color: #aaa;
-  font-weight: bold;
-}
-
-.dw-box.dw-marked {
+.wound-dot-dramatic.wound-dot-filled {
+  color: #ffd700;
   background: #8b1a1a;
   border-color: #6b1010;
 }
 
-.dw-box.dw-marked .dw-star {
-  color: #ffd700;
-}
-
-.dw-box.dw-marked .dw-num {
-  color: #ffcccc;
-}
-
-.dw-box:hover {
-  border-color: #8b7355;
-  background: #eddfc0;
-}
-
-.dw-box.dw-marked:hover {
-  background: #a02020;
+.wound-dot-dramatic.wound-dot-filled:hover {
+   background: #a02020;
 }
 
 /* Helpless row */

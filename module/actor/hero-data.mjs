@@ -2,6 +2,8 @@
  * 7th Sea 3e — Hero Data Model (Step 22)
  * Adds derived wound values for token bars and proper wound tracking.
  */
+import { computeWoundTrack } from "../combat/wound-track.mjs";
+
 const { fields } = foundry.data;
 
 export class HeroData extends foundry.abstract.TypeDataModel {
@@ -106,16 +108,17 @@ export class HeroData extends foundry.abstract.TypeDataModel {
     // wounds; already-marked segments show fully filled dots; later segments
     // show empty dots.
     this.wounds.trackLength = toughness;
-    const dramatic     = this.wounds.dramatic;
-    const activeIndex  = dramatic.findIndex(marked => !marked); // -1 = fully Helpless
-    this.wounds.track = dramatic.map((marked, segIndex) => {
-      const isActive = segIndex === activeIndex;
-      const dots = Array.from({ length: toughness }, (_, dotIndex) => {
-        if (marked)   return true;                     // segment already converted — show full
-        if (isActive) return dotIndex < this.wounds.minor;
-        return false;                                   // not yet reached
-      });
-      return { dots, marked, active: isActive };
-    });
+    // const dramatic     = this.wounds.dramatic;
+    // const activeIndex  = dramatic.findIndex(marked => !marked); // -1 = fully Helpless
+    // this.wounds.track = dramatic.map((marked, segIndex) => {
+    //   const isActive = segIndex === activeIndex;
+    //   const dots = Array.from({ length: toughness }, (_, dotIndex) => {
+    //     if (marked)   return true;                     // segment already converted — show full
+    //     if (isActive) return dotIndex < this.wounds.minor;
+    //     return false;                                   // not yet reached
+    //   });
+    //   return { dots, marked, active: isActive };
+    // });
+    this.wounds.track = computeWoundTrack(toughness, this.wounds.minor, this.wounds.dramatic, 4);
   }
 }
