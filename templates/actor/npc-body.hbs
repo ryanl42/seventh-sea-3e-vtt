@@ -16,7 +16,9 @@
       <label>Defence</label>
       <input type="number" name="system.combatAptitudes.defence" value="{{system.combatAptitudes.defence}}"
              min="0" max="10"
+             {{#if (eq system.npcType "brute")}}disabled{{/if}}
              {{#unless isEditable}}disabled{{/unless}} />
+             {{#if (eq system.npcType "brute")}}<span class="wounds-caption">Brute Squads have no Defence rating</span>{{/if}}
     </div>
 
     <div class="aptitude-row">
@@ -57,37 +59,49 @@
 
   <div class="section-heading">Wounds</div>
 
-  <div class="wound-field">
-    <label>Minor Wounds</label>
-    <input type="number" name="system.wounds.minor" value="{{system.wounds.minor}}" min="0"
-           {{#unless isEditable}}disabled{{/unless}} />
-  </div>
+  {{#if (eq system.npcType "brute")}}
 
-  <div class="dramatic-wounds-row">
-    <label>Dramatic Wounds</label>
-    <div class="dramatic-checkboxes">
-      <label class="dw-box">
-        <input type="checkbox" name="system.wounds.dramatic.0"
-               {{#if (lookup system.wounds.dramatic 0)}}checked{{/if}}
-               {{#unless isEditable}}disabled{{/unless}} /> ★
-      </label>
-      <label class="dw-box">
-        <input type="checkbox" name="system.wounds.dramatic.1"
-               {{#if (lookup system.wounds.dramatic 1)}}checked{{/if}}
-               {{#unless isEditable}}disabled{{/unless}} /> ★
-      </label>
-      <label class="dw-box">
-        <input type="checkbox" name="system.wounds.dramatic.2"
-               {{#if (lookup system.wounds.dramatic 2)}}checked{{/if}}
-               {{#unless isEditable}}disabled{{/unless}} /> ★
-      </label>
-      <label class="dw-box">
-        <input type="checkbox" name="system.wounds.dramatic.3"
-               {{#if (lookup system.wounds.dramatic 3)}}checked{{/if}}
-               {{#unless isEditable}}disabled{{/unless}} /> ★
-      </label>
+  <div class="wounds-row">
+    <div class="wounds-label">Brutes Remaining</div>
+    <div class="wound-track">
+      {{#if system.bruteTrack.length}}
+        <div class="wound-segment">
+          {{#each system.bruteTrack}}
+          <span class="wound-dot wound-dot-filled wound-dot-readonly" title="Brute {{@index}} — alive"></span>
+          {{/each}}
+        </div>
+      {{else}}
+        <span class="wounds-caption">Squad destroyed</span>
+      {{/if}}
     </div>
   </div>
+
+  {{else}}
+  <div class="wounds-row">
+    <div class="wounds-label">Wound Track</div>
+    <div class="wound-track">
+      {{#if system.wounds.trackLength}}
+        {{#each system.wounds.track}}
+        <div class="wound-segment">
+          {{#each this.dots}}
+          <span class="wound-dot {{#if this}}wound-dot-filled{{/if}} {{#unless ../../isEditable}}wound-dot-readonly{{/unless}}"
+                title="Minor Wound {{@index}} + 1"></span>
+          {{/each}}
+          <label class="dw-box {{#if this.marked}}dw-marked{{/if}}">
+            <input type="checkbox" name="system.wounds.dramatic.{{@index}}"
+                   {{#if this.marked}}checked{{/if}}
+                   {{#unless ../isEditable}}disabled{{/unless}} />
+            <span class="dw-star">★</span>
+          </label>
+        </div>
+        {{/each}}
+      {{else}}
+        <span class="wounds-caption">Assign a Toughness value to track wounds</span>
+      {{/if}}
+    </div>
+  </div>
+
+  {{/if}}
 
   <div class="wound-field">
     <label>Helpless</label>

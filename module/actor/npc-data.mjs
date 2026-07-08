@@ -52,8 +52,9 @@ export class NpcData extends foundry.abstract.TypeDataModel {
   prepareDerivedData() {
     // Brutes: rank sets attack and damage automatically
     if (this.npcType === "brute") {
-      this.combatAptitudes.attack = this.bruteRank;
-      this.combatAptitudes.damage = this.bruteRank;
+      this.combatAptitudes.attack   = this.bruteRank;
+      this.combatAptitudes.damage   = this.bruteRank;
+      this.combatAptitudes.defence  = 0;
     }
 
     // Helpless threshold: Henchmen at 2 Dramatic Wounds, others at 4
@@ -65,5 +66,22 @@ export class NpcData extends foundry.abstract.TypeDataModel {
     this.toughnessValue  = toughness;
     this.woundTotal      = this.wounds.minor + (this.dramaticWoundCount * toughness);
     this.woundMax        = toughness * this.dramaticWoundLimit;
+
+    if (this.npcType === "brute") {
+      this.bruteTrack = Array.from({ length: this.bruteCount }, () => true);
+    } else {
+      const dramatic    = this.wounds.dramatic.slice(0, this.dramaticWoundLimit);
+      const activeIndex = dramatic.findIndex(marked => !marked);
+      this.wounds.trackLength = toughness;
+      this.wounds.track = dramatic.map((marked, segIndex) => {
+        const isActive = segIndex === activeIndex;
+        const dots = Array.from({ length: toughness }, (_, dotIndex) => {
+          if (marked)   return true;
+          if (isActive) return dotIndex < this.wounds.minor;
+          return false;
+        });
+        return { dots, marked, active: isActive };
+      });
+    }
   }
 }

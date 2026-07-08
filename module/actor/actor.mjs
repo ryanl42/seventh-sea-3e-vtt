@@ -7,27 +7,29 @@
 export class SeventhSeaActor extends Actor {
 
   /**
-   * Apply wounds to this actor, correctly converting minor wounds to dramatic.
-   *
-   * Rules:
-   *  - Toughness value = number of minor wounds per "step"
-   *  - When minor wounds in the current step EXCEED Toughness, the wound that
-   *    pushes it over converts to 1 Dramatic Wound and the minor counter resets
-   *  - dramaticLimit Dramatic Wounds = Helpless (4 for Heroes and most NPCs,
-   *    2 for Henchmen)
-   *
-   * Example: Toughness 2, take 5 wounds:
-   *   wound 1 → minor=1
-   *   wound 2 → minor=2
-   *   wound 3 → minor=3 (over Toughness) → Dramatic 1, minor resets to 0
-   *   wound 4 → minor=1
-   *   wound 5 → minor=2
    *
    * @param {number} amount         Number of wounds to apply.
    * @param {object} [options]
    * @param {number} [options.dramaticLimit=4]  Dramatic Wound boxes before Helpless.
    */
   async applyWounds(amount, { dramaticLimit = 4 } = {}) {
+    if (this.type === "npc" && this.system.npcType === "brute") {
+      const current   = this.system.bruteCount;
+      const remaining = Math.max(0, current - amount);
+      const helpless  = remaining <= 0;
+      const bruteLost = current - remaining;
+
+      await this.update({
+        "system.bruteCount":      remaining,
+        "system.wounds.helpless": helpless,
+      });
+
+      if (bruteLost > 0) {
+        ui.notifications.info(`${this.name} loses ${bruteLost} brute${bruteLost > 1 ? "s" : ""} (${remaining} remaining).`);
+      }
+
+      return { minor: 0, dramatic: [], helpless, dramaticCount: 0, dramaticGained: 0, bruteCount: remaining, bruteLost };
+    }
     const system      = this.system;
     const toughnessRaw = system.combatAptitudes?.toughness;
     const toughness   = (typeof toughnessRaw === "object" ? toughnessRaw?.value : toughnessRaw) ?? 2;

@@ -230,8 +230,13 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     if (result && !result.success) {
-      const missedHits = Math.max(0, result.finalDifficulty - result.hits);
-      if (missedHits > 0) await this._applyMissedHitsAsWounds(missedHits);
+      // const missedHits = Math.max(0, result.finalDifficulty - result.hits);
+      //if (missedHits > 0) await this._applyMissedHitsAsWounds(missedHits);
+      if (target?.type === "npc") {
+       const baseDamage = target.system.combatAptitudes.damage ?? 0;
+       if (baseDamage > 0) await this._applyDefenceDamage(baseDamage);
+     } else {        ui.notifications.warn("No NPC targeted — can't determine Damage aptitude. Target the attacking NPC before rolling Defence.");      }
+      
       await postVillainPointDamagePrompt(this.document);
     }
   }
@@ -315,9 +320,11 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   // ── Apply wounds from a failed Defence roll ────────────────────────────────
-  async _applyMissedHitsAsWounds(missedHits) {
-    const { dramaticGained } = await this.document.applyWounds(missedHits, { dramaticLimit: 4 });
-
+  //async _applyMissedHitsAsWounds(missedHits) {
+  //  const { dramaticGained } = await this.document.applyWounds(missedHits, { dramaticLimit: 4 });
+  async _applyDefenceDamage(amount) {
+        const { dramaticGained } = await this.document.applyWounds(amount, { dramaticLimit: 4 });
+ 
     if (dramaticGained > 0) {
       ui.notifications.info(`${this.document.name} suffers ${dramaticGained} Dramatic Wound${dramaticGained > 1 ? "s" : ""}!`);
     }
