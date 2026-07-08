@@ -82,12 +82,11 @@ export class HeroData extends foundry.abstract.TypeDataModel {
 
     // ── Token bar objects ────────────────────────────────────────────────
     // Foundry reads {value, max} objects for token bars.
-    // "wounds" bar: tracks total wound progress across all steps.
     const toughness = this.combatAptitudes.toughness.value ?? 2;
-    this.toughnessValue      = toughness;
-    this.dramaticWoundCount  = this.wounds.dramatic.filter(Boolean).length;
-    this.woundTotal          = this.wounds.minor + (this.dramaticWoundCount * toughness);
-    this.woundMax            = toughness * 4;
+    this.toughnessValue     = toughness;
+    this.dramaticWoundCount = this.wounds.dramatic.filter(Boolean).length;
+    this.woundTotal         = this.wounds.minor + (this.dramaticWoundCount * toughness);
+    this.woundMax           = toughness * 4;
 
     // Expose as {value,max} objects that Foundry token bars can read
     this.wounds.value = this.woundTotal;
@@ -99,23 +98,24 @@ export class HeroData extends foundry.abstract.TypeDataModel {
       max:   Math.max(this.heroPoints, this.lowestTrait),
     };
 
-    // ── Wound derivations ──────────────────────────────────────────────────
-    // Toughness value = how many minor wounds per step - Cannot declare twice
-    // const toughness = this.combatAptitudes.toughness.value ?? 2;
-    // this.toughnessValue = toughness;
-
-    // Total minor wound slots = toughness × 4 steps
-    this.maxMinorTotal = toughness * 4;
-
-    // Count marked dramatic wounds
-    this.dramaticWoundCount = this.wounds.dramatic.filter(Boolean).length;
-
-    // Total wounds as a single number for token bars:
-    // Each dramatic wound = toughness minor wounds worth of damage
-    // Current minor + (dramatic × toughness) gives a continuous scale
-    this.woundTotal = this.wounds.minor + (this.dramaticWoundCount * toughness);
-
-    // Max possible wounds before helpless = toughness × 4
-    this.woundMax = toughness * 4;
+    // Minor Wound dot track: length = Toughness, filled up to current minor wounds.
+    // Wound track: 4 segments (one per Dramatic Wound box). Each segment is
+    // `toughness` Minor Wound dots followed by its Dramatic Wound box —
+    // e.g. Toughness 2 renders as OO-D-OO-D-OO-D-OO-D.
+    // The active (not-yet-marked) segment fills its dots up to current minor
+    // wounds; already-marked segments show fully filled dots; later segments
+    // show empty dots.
+    this.wounds.trackLength = toughness;
+    const dramatic     = this.wounds.dramatic;
+    const activeIndex  = dramatic.findIndex(marked => !marked); // -1 = fully Helpless
+    this.wounds.track = dramatic.map((marked, segIndex) => {
+      const isActive = segIndex === activeIndex;
+      const dots = Array.from({ length: toughness }, (_, dotIndex) => {
+        if (marked)   return true;                     // segment already converted — show full
+        if (isActive) return dotIndex < this.wounds.minor;
+        return false;                                   // not yet reached
+      });
+      return { dots, marked, active: isActive };
+    });
   }
 }

@@ -250,7 +250,7 @@ export class SeventhSeaDice {
       hpGained, extraDice, forced, vpGained,
     });
 
-    return { hits, success, extraHits, hpGained, forced };
+    return { hits, success, extraHits, hpGained, forced, finalDifficulty };
   }
 
   // ── Chat card ──────────────────────────────────────────────────────────────

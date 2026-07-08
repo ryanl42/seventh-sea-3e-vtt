@@ -14,11 +14,8 @@ import { AdvantageSheet } from "./apps/advantage-sheet.mjs";
 import { SorcerySheet }   from "./apps/sorcery-sheet.mjs";
 import { SeventhSeaDice } from "./dice/dice.mjs";
 import { registerHandlebarsHelpers } from "./helpers/handlebars.mjs";
-import {
-  registerVillainySetting,
-  initVillainHUD,
-  adjustVP, getVP, setVP,
-} from "./settings/villainy.mjs";
+import { registerVillainySetting, initVillainHUD, adjustVP, getVP, setVP } from "./settings/villainy.mjs";
+import { registerVillainPointChatListeners } from "./combat/vp-chat.mjs";
 
 Hooks.once("init", () => {
   console.log("7thSea3e | init fired");
@@ -60,6 +57,7 @@ Hooks.once("init", () => {
 
   registerHandlebarsHelpers();
   registerVillainySetting();
+  registerVillainPointChatListeners();
 
   console.log("7thSea3e | init complete");
 });

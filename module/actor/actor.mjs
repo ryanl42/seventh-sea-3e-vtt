@@ -7,43 +7,49 @@
 export class SeventhSeaActor extends Actor {
 
   /**
-   * Apply wounds to a Hero, correctly converting minor wounds to dramatic.
+   * Apply wounds to this actor, correctly converting minor wounds to dramatic.
    *
    * Rules:
    *  - Toughness value = number of minor wounds per "step"
-   *  - When minor wounds in the current step reach Toughness, the next
-   *    wound converts them to 1 Dramatic Wound and the minor counter resets
-   *  - 4th Dramatic Wound = Helpless
+   *  - When minor wounds in the current step EXCEED Toughness, the wound that
+   *    pushes it over converts to 1 Dramatic Wound and the minor counter resets
+   *  - dramaticLimit Dramatic Wounds = Helpless (4 for Heroes and most NPCs,
+   *    2 for Henchmen)
    *
    * Example: Toughness 2, take 5 wounds:
    *   wound 1 → minor=1
-   *   wound 2 → minor=2 (full step) → Dramatic 1, minor resets to 0
-   *   wound 3 → minor=1
-   *   wound 4 → minor=2 (full step) → Dramatic 2, minor resets to 0
-   *   wound 5 → minor=1
+   *   wound 2 → minor=2
+   *   wound 3 → minor=3 (over Toughness) → Dramatic 1, minor resets to 0
+   *   wound 4 → minor=1
+   *   wound 5 → minor=2
    *
-   * @param {number} amount   Number of wounds to apply
+   * @param {number} amount         Number of wounds to apply.
+   * @param {object} [options]
+   * @param {number} [options.dramaticLimit=4]  Dramatic Wound boxes before Helpless.
    */
-  async applyWounds(amount) {
-    if (this.type !== "hero") return;
-    const system    = this.system;
-    const toughness = system.combatAptitudes?.toughness?.value ?? 2;
+  async applyWounds(amount, { dramaticLimit = 4 } = {}) {
+    const system      = this.system;
+    const toughnessRaw = system.combatAptitudes?.toughness;
+    const toughness   = (typeof toughnessRaw === "object" ? toughnessRaw?.value : toughnessRaw) ?? 2;
 
-    let minor    = system.wounds.minor;
+    let minor      = system.wounds.minor;
     const dramatic = [...system.wounds.dramatic];
+    const dramaticBefore = dramatic.filter(Boolean).length;
 
     for (let i = 0; i < amount; i++) {
       minor++;
       if (minor > toughness) {
-        // Convert to a Dramatic Wound
         minor = 0;
-        const slot = dramatic.indexOf(false);
-        if (slot !== -1) dramatic[slot] = true;
+        if (dramatic.filter(Boolean).length < dramaticLimit) {
+          const slot = dramatic.indexOf(false);
+          if (slot !== -1) dramatic[slot] = true;
+        }
       }
     }
 
-    const dwCount  = dramatic.filter(Boolean).length;
-    const helpless = dwCount >= 4 || system.wounds.helpless;
+    const dwCount        = dramatic.filter(Boolean).length;
+    const dramaticGained = dwCount - dramaticBefore;
+    const helpless       = dwCount >= dramaticLimit || system.wounds.helpless;
 
     await this.update({
       "system.wounds.minor":    minor,
@@ -51,12 +57,11 @@ export class SeventhSeaActor extends Actor {
       "system.wounds.helpless": helpless,
     });
 
-    // Notify if helpless
-    if (dwCount >= 4) {
-      ui.notifications.warn(`${this.name} has suffered their 4th Dramatic Wound and is Helpless!`);
+    if (dwCount >= dramaticLimit && dramaticBefore < dramaticLimit) {
+      ui.notifications.warn(`${this.name} has suffered their ${dramaticLimit}th Dramatic Wound and is Helpless!`);
     }
 
-    return { minor, dramatic, helpless, dramaticCount: dwCount };
+    return { minor, dramatic, helpless, dramaticCount: dwCount, dramaticGained };
   }
 
   /**

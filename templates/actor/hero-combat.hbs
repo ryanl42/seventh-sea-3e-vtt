@@ -127,46 +127,29 @@
   <div class="wounds-block">
 
     <div class="wounds-row">
-      <div class="wounds-label">Minor Wounds</div>
-      <div class="wounds-controls">
-        <input type="number" name="system.wounds.minor"
-               value="{{system.wounds.minor}}" min="0"
-               {{#unless isEditable}}disabled{{/unless}} />
-        <span class="wounds-caption">/ {{system.toughnessValue}} before Dramatic</span>
-      </div>
-    </div>
+      <div class="wounds-label">Wound Track</div>
+      <div class="wound-track">
 
-    <div class="wounds-row">
-      <div class="wounds-label">Dramatic Wounds</div>
-      <div class="dramatic-boxes">
-        <label class="dw-box {{#if (lookup system.wounds.dramatic 0)}}dw-marked{{/if}}">
-          <input type="checkbox" name="system.wounds.dramatic.0"
-                 {{#if (lookup system.wounds.dramatic 0)}}checked{{/if}}
-                 {{#unless isEditable}}disabled{{/unless}} />
-          <span class="dw-star">★</span>
-          <span class="dw-num">1</span>
-        </label>
-        <label class="dw-box {{#if (lookup system.wounds.dramatic 1)}}dw-marked{{/if}}">
-          <input type="checkbox" name="system.wounds.dramatic.1"
-                 {{#if (lookup system.wounds.dramatic 1)}}checked{{/if}}
-                 {{#unless isEditable}}disabled{{/unless}} />
-          <span class="dw-star">★</span>
-          <span class="dw-num">2</span>
-        </label>
-        <label class="dw-box {{#if (lookup system.wounds.dramatic 2)}}dw-marked{{/if}}">
-          <input type="checkbox" name="system.wounds.dramatic.2"
-                 {{#if (lookup system.wounds.dramatic 2)}}checked{{/if}}
-                 {{#unless isEditable}}disabled{{/unless}} />
-          <span class="dw-star">★</span>
-          <span class="dw-num">3</span>
-        </label>
-        <label class="dw-box {{#if (lookup system.wounds.dramatic 3)}}dw-marked{{/if}}">
-          <input type="checkbox" name="system.wounds.dramatic.3"
-                 {{#if (lookup system.wounds.dramatic 3)}}checked{{/if}}
-                 {{#unless isEditable}}disabled{{/unless}} />
-          <span class="dw-star">★</span>
-          <span class="dw-num">4</span>
-        </label>
+        {{#if system.wounds.trackLength}}
+        {{#each system.wounds.track}}
+        <div class="wound-segment">
+          {{#each this.dots}}
+          <span class="wound-dot {{#if this}}wound-dot-filled{{/if}} {{#unless ../../isEditable}}wound-dot-readonly{{/unless}}"
+                {{#if ../active}}{{#if ../../isEditable}}data-action="toggleMinorWound" data-index="{{@index}}"{{/if}}{{/if}}
+                title="Minor Wound {{@index}} + 1"></span>
+          {{/each}}
+          <label class="dw-box {{#if this.marked}}dw-marked{{/if}}">
+            <input type="checkbox" name="system.wounds.dramatic.{{@index}}"
+                   {{#if this.marked}}checked{{/if}}
+                   {{#unless ../isEditable}}disabled{{/unless}} />
+            <span class="dw-star">★</span>
+          </label>
+        </div>
+        {{/each}}
+        {{else}}
+        <span class="wounds-caption">Assign a Trait to Toughness to track Minor Wounds</span>
+        {{/if}}
+
       </div>
     </div>
 

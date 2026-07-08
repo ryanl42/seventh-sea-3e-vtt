@@ -7,6 +7,7 @@
 
 import { SeventhSeaDice } from "../dice/dice.mjs";
 import { getTradition }   from "../sorcery/traditions.mjs";
+import { postVillainPointDamagePrompt } from "../combat/vp-chat.mjs";
 
 const { ActorSheetV2 }               = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -29,6 +30,8 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollSkill:        HeroSheet._onRollSkill,
       rollAttack:       HeroSheet._onRollAttack,
       rollDefence:      HeroSheet._onRollDefence,
+      toggleMinorWound: HeroSheet._onToggleMinorWound,
+      // Advantages
       createAdvantage:  HeroSheet._onCreateAdvantage,
       editAdvantage:    HeroSheet._onEditAdvantage,
       deleteAdvantage:  HeroSheet._onDeleteAdvantage,
@@ -197,13 +200,17 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? ` vs ${target.name} (Defence ${diff})`
       : "";
 
-    await SeventhSeaDice.rollCombat({
+    const result = await SeventhSeaDice.rollCombat({
       actor:         this.document,
       label:         "Attack" + diffLabel,
       aptitudeTrait: apt.trait || null,
       difficulty:    diff,
       skillChoices:  ["melee", "aim", "athletics"],
     });
+
+    if (result?.success && target?.type === "npc") {
+      await this._applyAttackDamage(target);
+    }
   }
 
   static async _onRollDefence() {
@@ -214,13 +221,73 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? ` vs ${target.name} (Attack ${diff})`
       : "";
 
-    await SeventhSeaDice.rollCombat({
+    const result = await SeventhSeaDice.rollCombat({
       actor:         this.document,
       label:         "Defence" + diffLabel,
       aptitudeTrait: apt.trait || null,
       difficulty:    diff,
       skillChoices:  ["melee", "athletics", "aim"],
     });
+
+    if (result && !result.success) {
+      const missedHits = Math.max(0, result.finalDifficulty - result.hits);
+      if (missedHits > 0) await this._applyMissedHitsAsWounds(missedHits);
+      await postVillainPointDamagePrompt(this.document);
+    }
+  }
+
+  // ── Apply damage from a successful Attack ──────────────────────────────────
+  // Wounds dealt = the Hero's Damage aptitude value, plus any Hero Points the
+  // player chooses to spend (1 HP = +1 wound).
+  async _applyAttackDamage(npcActor) {
+    const system  = this.document.system;
+    const baseDmg = system.combatAptitudes.damage.value ?? 0;
+
+    if (!system.combatAptitudes.damage.trait) {
+      ui.notifications.warn("Damage has no Trait assigned — treating base damage as 0.");
+    }
+
+    const heroPoints = system.heroPoints;
+    let hpSpent = 0;
+
+    if (heroPoints > 0) {
+      hpSpent = await new Promise(resolve => {
+        new Dialog({
+          title:   "Spend Hero Points for Damage",
+          content: `
+            <div class="ss-roll-dialog">
+              <p>Hit landed on <strong>${npcActor.name}</strong>. Base damage: <strong>${baseDmg}</strong>.</p>
+              <div class="dialog-field">
+                <label>Spend Hero Points <em>(${heroPoints} available)</em></label>
+                <input id="ss-hp-damage" type="number" value="0" min="0" max="${heroPoints}" />
+                <p class="dialog-hint">Each Hero Point spent adds +1 wound.</p>
+              </div>
+            </div>`,
+          buttons: {
+            confirm: {
+              label: "Apply Damage",
+              callback: html => resolve(Math.min(parseInt(html.find("#ss-hp-damage").val()) || 0, heroPoints)),
+            },
+          },
+          default: "confirm",
+          close: () => resolve(0),
+        }).render(true);
+      });
+    }
+
+    if (hpSpent > 0) {
+      await this.document.update({ "system.heroPoints": heroPoints - hpSpent });
+    }
+
+    const totalDamage = baseDmg + hpSpent;
+    if (totalDamage <= 0) return;
+
+    const dramaticLimit = npcActor.system.dramaticWoundLimit ?? 4;
+    const { dramaticGained } = await npcActor.applyWounds(totalDamage, { dramaticLimit });
+
+    if (dramaticGained > 0) {
+      ui.notifications.info(`${npcActor.name} suffers ${dramaticGained} Dramatic Wound${dramaticGained > 1 ? "s" : ""}!`);
+    }
   }
 
   // ── Sorcery ────────────────────────────────────────────────────────────────
@@ -245,6 +312,24 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       content: `<p>Remove <strong>${item.name}</strong>?</p>`,
     });
     if (confirmed) await item.delete();
+  }
+
+  // ── Apply wounds from a failed Defence roll ────────────────────────────────
+  async _applyMissedHitsAsWounds(missedHits) {
+    const { dramaticGained } = await this.document.applyWounds(missedHits, { dramaticLimit: 4 });
+
+    if (dramaticGained > 0) {
+      ui.notifications.info(`${this.document.name} suffers ${dramaticGained} Dramatic Wound${dramaticGained > 1 ? "s" : ""}!`);
+    }
+  }
+
+  // ── Minor Wound dot track ───────────────────────────────────────────────────
+
+  static async _onToggleMinorWound(event, target) {
+    const index   = Number(target.dataset.index);
+    const current = this.document.system.wounds.minor;
+    const next    = current === index + 1 ? index : index + 1;
+    await this.document.update({ "system.wounds.minor": next });
   }
 
   static async _onAdjustResource(event, target) {

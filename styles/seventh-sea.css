@@ -349,10 +349,52 @@
   font-style: italic;
 }
 
-/* Dramatic wound boxes */
-.dramatic-boxes {
+/* Wound track: repeating [Toughness dots][Dramatic Wound box] segments in one line */
+.wound-track {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wound-segment {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wound-dot {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #8b7355;
+  background: #f5ead5;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.wound-dot:hover {
+  border-color: #8b1a1a;
+  transform: scale(1.1);
+}
+
+.wound-dot-filled {
+  background: #8b1a1a;
+  border-color: #6b1010;
+}
+
+.wound-dot-filled:hover {
+  background: #a02020;
+}
+
+.wound-dot-readonly {
+  cursor: default;
+}
+
+.wound-dot-readonly:hover {
+  border-color: #8b7355;
+  transform: none;
 }
 
 .dw-box {
@@ -671,6 +713,33 @@
 .extra-hits { color: #b8860b; font-size: 0.85em; margin-left: 4px; }
 .chat-roll-footer { font-size: 0.8em; color: #6a5a44; font-style: italic; margin-top: 3px; }
 .chat-roll-footer.hp-gained { color: #2e7d32; font-weight: bold; font-style: normal; }
+
+/* Villain Point damage chat prompt */
+.chat-vp-prompt .vp-prompt-text {
+  font-size: 0.9em;
+  color: #2a1a0a;
+  margin: 0 0 8px 0;
+}
+
+.chat-vp-prompt.is-resolved .vp-prompt-text {
+  margin-bottom: 0;
+}
+
+.vp-damage-btn {
+  background: #8b1a1a;
+  color: #fff8ec;
+  border: 1px solid #6b1010;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.85em;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.vp-damage-btn:hover {
+  background: #a02020;
+}
 
 /* ── NPC Sheet ────────────────────────────────────────── */
 .seventh-sea.actor-sheet.npc .window-content { background: #f0e8d8; }
