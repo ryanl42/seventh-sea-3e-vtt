@@ -16,9 +16,10 @@ import { SeventhSeaDice } from "./dice/dice.mjs";
 import { registerHandlebarsHelpers } from "./helpers/handlebars.mjs";
 import { registerVillainySetting, initVillainHUD, adjustVP, getVP, setVP } from "./settings/villainy.mjs";
 import { registerVillainPointChatListeners } from "./combat/vp-chat.mjs";
-import {registerExtendedActionSetting, initExtendedActionHUD,
-  getExtendedAction, setExtendedAction, addExtendedActionProgress,
-  startExtendedAction, stopExtendedAction,
+import {
+  registerExtendedActionSetting, initExtendedActionHUD,
+  getExtendedActions, getExtendedAction, addExtendedAction,
+  updateExtendedAction, removeExtendedAction, addExtendedActionProgress,
 } from "./settings/extended-action.mjs";
 
 Hooks.once("init", () => {
@@ -70,10 +71,11 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("ready", () => {
-  game.seventhSea = { SeventhSeaDice, getVP, setVP, adjustVP,
-    getExtendedAction, setExtendedAction, addExtendedActionProgress,
-    startExtendedAction, stopExtendedAction,
-   };
+  game.seventhSea = {
+    SeventhSeaDice, getVP, setVP, adjustVP,
+    getExtendedActions, getExtendedAction, addExtendedAction,
+   updateExtendedAction, removeExtendedAction, addExtendedActionProgress,
+  };
   initVillainHUD();
   initExtendedActionHUD();
   applyColorTheme(game.settings.get("seventh-sea-3e", "colorTheme"));

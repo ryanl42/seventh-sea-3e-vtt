@@ -1,5 +1,21 @@
-2026/07/09-08:18:39.601 1e548 Recovering log #42
-2026/07/09-08:18:39.601 1e548 Level-0 table #45: started
-2026/07/09-08:18:39.605 1e548 Level-0 table #45: 7400 bytes OK
-2026/07/09-08:18:39.610 1e548 Delete type=0 #42
-2026/07/09-08:18:39.610 1e548 Delete type=3 #41
+2026/07/09-10:15:18.484 c8bc Recovering log #46
+2026/07/09-10:15:18.485 c8bc Level-0 table #48: started
+2026/07/09-10:15:18.487 c8bc Level-0 table #48: 7400 bytes OK
+2026/07/09-10:15:18.492 c8bc Delete type=0 #3
+2026/07/09-10:15:18.492 c8bc Delete type=2 #5
+2026/07/09-10:15:18.493 c8bc Delete type=2 #8
+2026/07/09-10:15:18.493 c8bc Delete type=0 #9
+2026/07/09-10:15:18.493 c8bc Delete type=0 #15
+2026/07/09-10:15:18.493 c8bc Delete type=2 #16
+2026/07/09-10:15:18.493 c8bc Delete type=2 #27
+2026/07/09-10:15:18.494 c8bc Delete type=0 #29
+2026/07/09-10:15:18.494 c8bc Delete type=2 #31
+2026/07/09-10:15:18.494 c8bc Delete type=2 #34
+2026/07/09-10:15:18.494 c8bc Delete type=0 #35
+2026/07/09-10:15:18.494 c8bc Delete type=0 #46
+2026/07/09-10:15:18.495 c8bc Delete type=3 #2
+2026/07/09-10:15:18.495 c8bc Delete type=3 #7
+2026/07/09-10:15:18.495 c8bc Delete type=3 #13
+2026/07/09-10:15:18.495 c8bc Delete type=3 #28
+2026/07/09-10:15:18.495 c8bc Delete type=3 #33
+2026/07/09-10:15:18.496 c8bc Delete type=3 #44

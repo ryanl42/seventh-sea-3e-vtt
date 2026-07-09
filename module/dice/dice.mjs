@@ -5,7 +5,7 @@
  */
 
 import { adjustVP } from "../settings/villainy.mjs";
-import { getExtendedAction, addExtendedActionProgress } from "../settings/extended-action.mjs";
+import { getExtendedActions, addExtendedActionProgress } from "../settings/extended-action.mjs";
  
 const HIT_THRESHOLDS = [10, 9, 8, 7, 6, 5];
 
@@ -24,14 +24,14 @@ export class SeventhSeaDice {
     const backlash   = actor?.items
       ?.filter(i => i.type === "sorcery")
       ?.reduce((sum, i) => sum + (i.system.resource.value ?? 0), 0) ?? 0;
-    const extendedAction = getExtendedAction();
+    const extendedActions = getExtendedActions();
 
     const dialogResult = await SeventhSeaDice._showSkillDialog({
-      label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedAction,
+      label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedActions,
     });
     if (dialogResult === null) return null;
 
-    const { finalDifficulty, extraDice, forceFate, chosenTrait, contributeToExtendedAction } = dialogResult;
+    const { finalDifficulty, extraDice, forceFate, chosenTrait, extendedActionId } = dialogResult;
 
     const traitVal  = traits[chosenTrait]?.value ?? 0;
     const skillVal  = system?.skills?.[skillKey]?.value ?? skillRank;
@@ -46,7 +46,7 @@ export class SeventhSeaDice {
       actor, label: `${label} [${chosenTrait}]`,
       finalPool, skillRank, specialty, finalDifficulty,
       extraDice, forceFate, includeDramaticWounds: false,
-      contributeToExtendedAction,
+      extendedActionId,
     });
   }
 
@@ -89,7 +89,7 @@ export class SeventhSeaDice {
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
 
-  static _showSkillDialog({ label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedAction = null }) {
+  static _showSkillDialog({ label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedActions = [] }) {
     const threshold   = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeNote = specialty ? "Specialty: explode on 9–10" : "Explode on 10";
 
@@ -97,13 +97,17 @@ export class SeventhSeaDice {
       `<option value="${key}" ${key === defaultTrait ? "selected" : ""}>${_cap(key)} (${t.value})</option>`
     ).join("");
 
-    const eaActive = !!extendedAction?.active;
-    const eaField = eaActive ? `
+    const eaOptions = extendedActions.map(a =>
+      `<option value="${a.id}">${a.label ? _cap(a.label) : "Extended Action"} (${a.current}/${a.target})</option>`
+    ).join("");
+    const eaField = extendedActions.length > 0 ? `
             <div class="dialog-field">
-              <label>Extended Action${extendedAction.label ? `: ${extendedAction.label}` : ""}
-                <em>(${extendedAction.current}/${extendedAction.target})</em></label>
-              <input id="ss-contribute-ea" type="checkbox" checked />
-              <p class="dialog-hint">Hits beyond Difficulty count toward the Goal instead of granting Hero Points.</p>
+              <label>Contribute to</label>
+              <select id="ss-contribute-ea">
+                <option value="">— None (Hero Points as normal) —</option>
+                ${eaOptions}
+              </select>
+              <p class="dialog-hint">Hits beyond Difficulty count toward the chosen Goal instead of granting Hero Points.</p>
             </div>` : "";
 
     return new Promise(resolve => {
@@ -146,7 +150,7 @@ export class SeventhSeaDice {
               finalDifficulty: parseInt(html.find("#ss-difficulty").val()) || difficulty,
               extraDice:      Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
               forceFate:      html.find("#ss-force-fate").is(":checked"),
-              contributeToExtendedAction: eaActive && html.find("#ss-contribute-ea").is(":checked"),
+              extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null, 
             }),
           },
           cancel: { label: "Cancel", callback: () => resolve(null) },
@@ -224,7 +228,7 @@ export class SeventhSeaDice {
 
   static async _resolveRoll({
     actor, label, finalPool, skillRank, specialty, finalDifficulty, extraDice, forceFate,
-    includeDramaticWounds = false, contributeToExtendedAction = false,
+    includeDramaticWounds = false, extendedActionId = null,
   }) {
     const threshold = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeOn = specialty ? 9 : 10;
@@ -238,6 +242,12 @@ export class SeventhSeaDice {
       allFaces.push(...faces);
       pending = faces.filter(f => f >= explodeOn).length;
     }
+
+    /* ── Dramatic Wound dice (Attack/Defence rolls only) ─────────────────────
+        Each of the actor's current Dramatic Wounds adds a separate die to the
+        roll. These always explode on a 10 (regardless of Specialty), count
+        toward hits like any other die, but if any of them come up a 1 the
+        character becomes Helpless on their next turn (Reactions still allowed). */
 
     const woundDiceCount = includeDramaticWounds ? (actor?.system?.dramaticWoundCount ?? 0) : 0;
     const woundFaces      = [];
@@ -274,8 +284,8 @@ export class SeventhSeaDice {
 
     let hpGained = 0;
     let extendedActionState = null;
-    if (!forced && extraHits > 0 && contributeToExtendedAction) {
-      extendedActionState = await addExtendedActionProgress(extraHits);
+    if (!forced && extraHits > 0 && extendedActionId) {
+      extendedActionState = await addExtendedActionProgress(extendedActionId, extraHits);
     } else if (!forced && extraDice === 0 && extraHits > 0 && actor) {
       hpGained = extraHits;
       await actor.update({ "system.heroPoints": actor.system.heroPoints + hpGained });

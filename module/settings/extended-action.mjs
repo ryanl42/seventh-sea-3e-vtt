@@ -1,60 +1,89 @@
 /**
  * 7th Sea 3e — Extended Action Tracker
  *
- * A shared, world-level progress tracker for Extended Actions / montages.
- * - GM sets a Goal (a target number of Hits) and an optional label.
+ * A shared, world-level list of progress trackers for Extended Actions /
+ * montages. More than one can be tracked at the same time (e.g. "Escape the
+ * Sinking Ship" and "Keep the Crowd from Panicking" running concurrently).
+ * - GM adds a tracker with a Goal (a target number of Hits) and a label.
  * - Any Hero's skill roll (not Attack/Defence) can opt to contribute its
- *   extra Hits (Hits beyond the roll's Difficulty) toward the Goal.
+ *   extra Hits (Hits beyond the roll's Difficulty) toward one of the
+ *   active Goals.
  * - Visible to everyone at the table so players can track progress.
  */
 
-const SETTING_KEY = "extendedAction";
-
-const DEFAULT_STATE = { active: false, label: "", target: 0, current: 0 };
+const SETTING_KEY = "extendedActions";
 
 export function registerExtendedActionSetting() {
   game.settings.register("seventh-sea-3e", SETTING_KEY, {
-    name:    "Extended Action Tracker",
-    hint:    "Shared progress toward the current Extended Action's Goal.",
+    name:    "Extended Action Trackers",
+    hint:    "Shared progress toward each active Extended Action's Goal.",
     scope:   "world",
     config:  false,
-    type:    Object,
-    default: DEFAULT_STATE,
+    type:    Array,
+    default: [],
   });
 }
 
-export function getExtendedAction() {
-  return game.settings.get("seventh-sea-3e", SETTING_KEY) ?? DEFAULT_STATE;
+/** All current Extended Action trackers. */
+export function getExtendedActions() {
+  return game.settings.get("seventh-sea-3e", SETTING_KEY) ?? [];
 }
 
-export async function setExtendedAction(data) {
-  const current = getExtendedAction();
-  const next    = foundry.utils.mergeObject(foundry.utils.deepClone(current), data);
-  next.target   = Math.max(0, Math.floor(next.target ?? 0));
-  next.current  = next.target > 0
-    ? Math.clamp(Math.floor(next.current ?? 0), 0, next.target)
-    : Math.max(0, Math.floor(next.current ?? 0));
-  await game.settings.set("seventh-sea-3e", SETTING_KEY, next);
+/** A single tracker by id, or null if it doesn't exist (e.g. already cleared). */
+export function getExtendedAction(id) {
+  return getExtendedActions().find(a => a.id === id) ?? null;
+}
+
+async function _saveExtendedActions(list) {
+  await game.settings.set("seventh-sea-3e", SETTING_KEY, list);
   ExtendedActionHUD.rerender();
-  return next;
+  return list;
 }
 
-/** GM starts a new Extended Action with a fresh Goal. */
-export async function startExtendedAction(label, target) {
-  return setExtendedAction({ active: true, label: label ?? "", target: target ?? 0, current: 0 });
+function _clampEntry(entry) {
+  const target  = Math.max(0, Math.floor(entry.target ?? 0));
+  const current = target > 0
+    ? Math.clamp(Math.floor(entry.current ?? 0), 0, target)
+    : Math.max(0, Math.floor(entry.current ?? 0));
+  return { ...entry, target, current };
 }
 
-/** GM ends/clears the current Extended Action (keeps last values visible until a new one starts). */
-export async function stopExtendedAction() {
-  return setExtendedAction({ active: false });
+/** GM starts a new, independent Extended Action tracker. Returns the created entry. */
+export async function addExtendedAction(label, target) {
+  const list  = getExtendedActions();
+  const entry = _clampEntry({
+    id:     foundry.utils.randomID(),
+    label:  label ?? "",
+    target: target ?? 0,
+    current: 0,
+  });
+  await _saveExtendedActions([...list, entry]);
+  return entry;
 }
 
-/** Adds (or removes, with a negative amount) progress toward the Goal. Clamped to [0, target]. */
-export async function addExtendedActionProgress(amount) {
-  const state = getExtendedAction();
-  const target = state.target ?? 0;
-  const next   = Math.clamp((state.current ?? 0) + amount, 0, target > 0 ? target : Number.MAX_SAFE_INTEGER);
-  return setExtendedAction({ current: next });
+/** Updates a tracker's label/target/current (merged, then re-clamped). */
+export async function updateExtendedAction(id, data) {
+  const list = getExtendedActions();
+  const idx  = list.findIndex(a => a.id === id);
+  if (idx === -1) return null;
+  const merged = _clampEntry(foundry.utils.mergeObject(foundry.utils.deepClone(list[idx]), data));
+  const next   = [...list];
+  next[idx]    = merged;
+  await _saveExtendedActions(next);
+  return merged;
+}
+
+/** Removes a tracker entirely. */
+export async function removeExtendedAction(id) {
+  const list = getExtendedActions();
+  await _saveExtendedActions(list.filter(a => a.id !== id));
+}
+
+/** Adds (or removes, with a negative amount) progress toward a tracker's Goal. */
+export async function addExtendedActionProgress(id, amount) {
+  const entry = getExtendedAction(id);
+  if (!entry) return null;
+  return updateExtendedAction(id, { current: (entry.current ?? 0) + amount });
 }
 
 // ── Extended Action HUD ─────────────────────────────────────────────────────
@@ -71,16 +100,13 @@ export class ExtendedActionHUD extends Application {
   }
 
   getData() {
-    const state    = getExtendedAction();
-    const target   = state.target ?? 0;
-    const current  = state.current ?? 0;
-    const pct      = target > 0 ? Math.clamp(Math.round((current / target) * 100), 0, 100) : 0;
-    return {
-      ...state,
-      pct,
-      complete: target > 0 && current >= target,
-      isGM:     game.user.isGM,
-    };
+    const actions = getExtendedActions().map(a => {
+      const target  = a.target ?? 0;
+      const current = a.current ?? 0;
+      const pct     = target > 0 ? Math.clamp(Math.round((current / target) * 100), 0, 100) : 0;
+      return { ...a, pct, complete: target > 0 && current >= target };
+    });
+    return { actions, isGM: game.user.isGM };
   }
 
   activateListeners(html) {
@@ -88,26 +114,37 @@ export class ExtendedActionHUD extends Application {
 
     html.find("[data-action='ea-new']").click(async () => {
       const result = await _promptGoalDialog();
-      if (result) await startExtendedAction(result.label, result.target);
+      if (result) await addExtendedAction(result.label, result.target);
     });
 
-    html.find("[data-action='ea-edit']").click(async () => {
-      const state  = getExtendedAction();
-      const result = await _promptGoalDialog(state.label, state.target);
-      if (result) await setExtendedAction({ label: result.label, target: result.target });
+    html.find("[data-action='ea-edit']").click(async ev => {
+      const id    = ev.currentTarget.closest("[data-id]")?.dataset.id;
+      const entry = getExtendedAction(id);
+      if (!entry) return;
+      const result = await _promptGoalDialog(entry.label, entry.target);
+      if (result) await updateExtendedAction(id, { label: result.label, target: result.target });
     });
 
-    html.find("[data-action='ea-increase']").click(() => addExtendedActionProgress(1));
-    html.find("[data-action='ea-decrease']").click(() => addExtendedActionProgress(-1));
-    html.find("[data-action='ea-clear']").click(async () => {
+    html.find("[data-action='ea-increase']").click(ev => {
+      const id = ev.currentTarget.closest("[data-id]")?.dataset.id;
+      if (id) addExtendedActionProgress(id, 1);
+    });
+    html.find("[data-action='ea-decrease']").click(ev => {
+      const id = ev.currentTarget.closest("[data-id]")?.dataset.id;
+      if (id) addExtendedActionProgress(id, -1);
+    });
+    html.find("[data-action='ea-clear']").click(async ev => {
+      const id = ev.currentTarget.closest("[data-id]")?.dataset.id;
+      if (!id) return;
       const confirmed = await Dialog.confirm({
         title:   "Clear Extended Action",
-        content: "<p>Clear the current Extended Action tracker?</p>",
+        content: "<p>Clear this Extended Action tracker?</p>",
       });
-      if (confirmed) await stopExtendedAction();
+      if (confirmed) await removeExtendedAction(id);
     });
   }
-
+  
+  // Re-render all active instances
   static rerender() {
     Object.values(ui.windows)
       .filter(w => w.id === "seventh-sea-extended-action-hud")

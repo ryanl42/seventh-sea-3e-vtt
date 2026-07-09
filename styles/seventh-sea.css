@@ -1001,10 +1001,10 @@ body[data-ss-theme="classic"] {
   text-align: left;
 }
 
-.sorte-btn:hover { background: var(--ss-hud-accent); border-color: var(--ss-hud-accent); color: white; }
+.sorte-btn:hover   { background: var(--ss-hud-accent); border-color: var(--ss-hud-accent); color: white; }
 .sorte-minor:hover { background: var(--ss-accent); border-color: var(--ss-accent); color: white; }
 .sorte-major:hover { background: var(--ss-danger); border-color: var(--ss-danger); color: white; }
-.sorte-ref:hover   { background: var(--ss-hud-accent-hover); border-color: var(--ss-hud-accent-hover); color: white; }
+.sorte-ref:hover   { background: #2e4a2e; border-color: #2e4a2e; color: white; }
 
 .sorte-action-desc {
   font-size: 0.78em;
@@ -1241,10 +1241,17 @@ body[data-ss-theme="classic"] {
 /* ── Extended Action HUD ──────────────────────────────── */
 .ss-ea-hud {
   position: fixed;
-  bottom: 160px;
+  bottom: 165px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 8px;
+}
+
+.ea-tracker {
   background: var(--ss-hud-bg);
   border: 2px solid var(--ss-hud-accent);
   border-radius: 8px;
@@ -1254,10 +1261,10 @@ body[data-ss-theme="classic"] {
   gap: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.6);
   font-family: "Palatino Linotype", Palatino, serif;
-  max-width: 860px;
+  max-width: 420px;
 }
 
-.ss-ea-hud.is-complete { border-color: #2e7d32; }
+.ea-tracker.is-complete { border-color: #2e7d32; }
 
 .ea-label {
   font-size: 0.75em;
@@ -1280,7 +1287,6 @@ body[data-ss-theme="classic"] {
 
 .ea-bar-fill {
   height: 100%;
-  width: 100px;
   background: linear-gradient(90deg, var(--ss-hud-accent), #2e7d32);
   transition: width 0.2s ease;
 }
@@ -1312,7 +1318,6 @@ body[data-ss-theme="classic"] {
   line-height: 1;
   cursor: pointer;
 }
-
 .ea-btn:hover { background: var(--ss-hud-accent-hover); }
 
 .ea-edit {
@@ -1324,7 +1329,6 @@ body[data-ss-theme="classic"] {
   cursor: pointer;
   font-size: 0.85em;
 }
-
 .ea-edit:hover { background: var(--ss-hud-panel-hover); color: var(--ss-hud-text-bright); }
 
 .ea-new {
@@ -1335,9 +1339,9 @@ body[data-ss-theme="classic"] {
   padding: 4px 10px;
   cursor: pointer;
   font-size: 0.85em;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
-
 .ea-new:hover { background: var(--ss-hud-accent-hover); }
 
 /* Extended Action contribution note in chat */
-.chat-roll-footer.ea-progress { color: var(--ss-hud-accent); font-weight: bold; font-style: normal; } 
+.chat-roll-footer.ea-progress { color: var(--ss-hud-accent); font-weight: bold; font-style: normal; }
