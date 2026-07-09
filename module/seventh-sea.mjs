@@ -16,6 +16,10 @@ import { SeventhSeaDice } from "./dice/dice.mjs";
 import { registerHandlebarsHelpers } from "./helpers/handlebars.mjs";
 import { registerVillainySetting, initVillainHUD, adjustVP, getVP, setVP } from "./settings/villainy.mjs";
 import { registerVillainPointChatListeners } from "./combat/vp-chat.mjs";
+import {registerExtendedActionSetting, initExtendedActionHUD,
+  getExtendedAction, setExtendedAction, addExtendedActionProgress,
+  startExtendedAction, stopExtendedAction,
+} from "./settings/extended-action.mjs";
 
 Hooks.once("init", () => {
   console.log("7thSea3e | init fired");
@@ -59,15 +63,46 @@ Hooks.once("init", () => {
   registerVillainySetting();
   registerVillainPointChatListeners();
   registerDramaticWoundHelplessHook();
+  registerExtendedActionSetting();
+  registerColorThemeSetting();
 
-    console.log("7thSea3e | init complete");
+  console.log("7thSea3e | init complete");
 });
 
 Hooks.once("ready", () => {
-  game.seventhSea = { SeventhSeaDice, getVP, setVP, adjustVP };
+  game.seventhSea = { SeventhSeaDice, getVP, setVP, adjustVP,
+    getExtendedAction, setExtendedAction, addExtendedActionProgress,
+    startExtendedAction, stopExtendedAction,
+   };
   initVillainHUD();
+  initExtendedActionHUD();
+  applyColorTheme(game.settings.get("seventh-sea-3e", "colorTheme"));
   console.log("7thSea3e | ready fired");
 });
+
+// ── Color Theme — actor sheets, Villainy HUD, Extended Action HUD ─────────────
+// A client-scoped setting (each player picks their own) toggling between the
+// system's default look and a "classic" 7th Sea 1st Edition-inspired palette
+// (deep burgundy, brass gold, black leather) via a data attribute on <body>.
+function registerColorThemeSetting() {
+  game.settings.register("seventh-sea-3e", "colorTheme", {
+    name:    "Color Theme",
+    hint:    "Choose the color palette used for actor sheets, the Villainy Points HUD, and the Extended Action HUD.",
+    scope:   "client",
+    config:  true,
+    type:    String,
+    choices: {
+      default: "Default",
+      classic: "7th Sea — 1st Edition",
+    },
+    default: "default",
+    onChange: value => applyColorTheme(value),
+  });
+}
+
+function applyColorTheme(value) {
+  document.body.dataset.ssTheme = value;
+}
 
 // ── Dramatic Wound dice — "Helpless" resolves at the start of the next turn ───
 // When a Dramatic Wound die rolls a 1, the character is marked Helpless for

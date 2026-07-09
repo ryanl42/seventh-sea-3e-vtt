@@ -5,7 +5,8 @@
  */
 
 import { adjustVP } from "../settings/villainy.mjs";
-
+import { getExtendedAction, addExtendedActionProgress } from "../settings/extended-action.mjs";
+ 
 const HIT_THRESHOLDS = [10, 9, 8, 7, 6, 5];
 
 export class SeventhSeaDice {
@@ -23,13 +24,14 @@ export class SeventhSeaDice {
     const backlash   = actor?.items
       ?.filter(i => i.type === "sorcery")
       ?.reduce((sum, i) => sum + (i.system.resource.value ?? 0), 0) ?? 0;
+    const extendedAction = getExtendedAction();
 
     const dialogResult = await SeventhSeaDice._showSkillDialog({
-      label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash,
+      label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedAction,
     });
     if (dialogResult === null) return null;
 
-    const { finalDifficulty, extraDice, forceFate, chosenTrait } = dialogResult;
+    const { finalDifficulty, extraDice, forceFate, chosenTrait, contributeToExtendedAction } = dialogResult;
 
     const traitVal  = traits[chosenTrait]?.value ?? 0;
     const skillVal  = system?.skills?.[skillKey]?.value ?? skillRank;
@@ -44,6 +46,7 @@ export class SeventhSeaDice {
       actor, label: `${label} [${chosenTrait}]`,
       finalPool, skillRank, specialty, finalDifficulty,
       extraDice, forceFate, includeDramaticWounds: false,
+      contributeToExtendedAction,
     });
   }
 
@@ -86,13 +89,22 @@ export class SeventhSeaDice {
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
 
-  static _showSkillDialog({ label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash }) {
+  static _showSkillDialog({ label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedAction = null }) {
     const threshold   = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeNote = specialty ? "Specialty: explode on 9–10" : "Explode on 10";
 
     const traitOptions = Object.entries(traits).map(([key, t]) =>
       `<option value="${key}" ${key === defaultTrait ? "selected" : ""}>${_cap(key)} (${t.value})</option>`
     ).join("");
+
+    const eaActive = !!extendedAction?.active;
+    const eaField = eaActive ? `
+            <div class="dialog-field">
+              <label>Extended Action${extendedAction.label ? `: ${extendedAction.label}` : ""}
+                <em>(${extendedAction.current}/${extendedAction.target})</em></label>
+              <input id="ss-contribute-ea" type="checkbox" checked />
+              <p class="dialog-hint">Hits beyond Difficulty count toward the Goal instead of granting Hero Points.</p>
+            </div>` : "";
 
     return new Promise(resolve => {
       new Dialog({
@@ -124,6 +136,7 @@ export class SeventhSeaDice {
               <input id="ss-force-fate" type="checkbox" />
               <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
             </div>
+            ${eaField}
           </div>`,
         buttons: {
           roll: {
@@ -133,6 +146,7 @@ export class SeventhSeaDice {
               finalDifficulty: parseInt(html.find("#ss-difficulty").val()) || difficulty,
               extraDice:      Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
               forceFate:      html.find("#ss-force-fate").is(":checked"),
+              contributeToExtendedAction: eaActive && html.find("#ss-contribute-ea").is(":checked"),
             }),
           },
           cancel: { label: "Cancel", callback: () => resolve(null) },
@@ -210,7 +224,7 @@ export class SeventhSeaDice {
 
   static async _resolveRoll({
     actor, label, finalPool, skillRank, specialty, finalDifficulty, extraDice, forceFate,
-    includeDramaticWounds = false,
+    includeDramaticWounds = false, contributeToExtendedAction = false,
   }) {
     const threshold = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeOn = specialty ? 9 : 10;
@@ -259,7 +273,10 @@ export class SeventhSeaDice {
     }
 
     let hpGained = 0;
-    if (!forced && extraDice === 0 && extraHits > 0 && actor) {
+    let extendedActionState = null;
+    if (!forced && extraHits > 0 && contributeToExtendedAction) {
+      extendedActionState = await addExtendedActionProgress(extraHits);
+    } else if (!forced && extraDice === 0 && extraHits > 0 && actor) {
       hpGained = extraHits;
       await actor.update({ "system.heroPoints": actor.system.heroPoints + hpGained });
     }
@@ -268,12 +285,12 @@ export class SeventhSeaDice {
       actor, label, allFaces, woundFaces, threshold, specialty,
       finalDifficulty, hits, success, extraHits,
       hpGained, extraDice, forced, vpGained,
-      dramaticWoundHelplessTriggered,
+      dramaticWoundHelplessTriggered, extendedActionState,
     });
 
     return {
       hits, success, extraHits, hpGained, forced, finalDifficulty,
-      dramaticWoundHelplessTriggered,
+      dramaticWoundHelplessTriggered, extendedActionState,
     };
   }
 
@@ -283,7 +300,7 @@ export class SeventhSeaDice {
     actor, label, allFaces, woundFaces = [], threshold, specialty,
     finalDifficulty, hits, success, extraHits,
     hpGained, extraDice, forced, vpGained,
-    dramaticWoundHelplessTriggered = false,
+    dramaticWoundHelplessTriggered = false, extendedActionState = null,
   }) {
     const diceHtml = allFaces.map(f =>
       `<span class="die ${f >= threshold ? "hit" : ""}">${f}</span>`
@@ -304,6 +321,11 @@ export class SeventhSeaDice {
     }
     if (dramaticWoundHelplessTriggered) {
       footer += `<div class="chat-roll-footer result-failure">⚠ A Dramatic Wound die rolled a 1 — Helpless next turn (Reactions only)!</div>`;
+    }
+    if (extendedActionState) {
+      const { label: eaLabel, current, target } = extendedActionState;
+      const doneNote = current >= target ? " — 🎉 Goal reached!" : "";
+      footer += `<div class="chat-roll-footer ea-progress">Extended Action${eaLabel ? ` (${eaLabel})` : ""}: +${extraHits} → ${current}/${target}${doneNote}</div>`;
     }
 
     const resultText = forced ? "⚖ FORCED" : success ? "✓ SUCCESS" : "✗ FAILURE";

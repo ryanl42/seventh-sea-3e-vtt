@@ -1,0 +1,28 @@
+{{#if (or active isGM)}}
+<div id="seventh-sea-extended-action-hud" class="ss-ea-hud {{#if complete}}is-complete{{/if}}">
+
+  {{#if active}}
+    <div class="ea-label">
+      Extended Action{{#if label}}: {{label}}{{/if}}
+    </div>
+    <div class="ea-bar-track">
+      <div class="ea-bar-fill" style="width: {{pct}}%;"></div>
+      <span class="ea-bar-text">{{current}} / {{target}}</span>
+    </div>
+    {{#if complete}}<span class="ea-complete-flag">🎉 Goal reached!</span>{{/if}}
+
+    {{#if isGM}}
+    <div class="ea-controls">
+      <button class="ea-btn" data-action="ea-decrease" title="Remove 1 progress">−</button>
+      <button class="ea-btn" data-action="ea-increase" title="Add 1 progress">+</button>
+      <button class="ea-edit" data-action="ea-edit" title="Edit label/goal">✎</button>
+      <button class="ea-edit" data-action="ea-clear" title="Clear tracker">✕</button>
+    </div>
+    {{/if}}
+
+  {{else if isGM}}
+    <button class="ea-new" data-action="ea-new"> Start Extended Action</button>
+  {{/if}}
+
+</div>
+{{/if}}
