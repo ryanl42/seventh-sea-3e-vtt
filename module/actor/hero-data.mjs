@@ -58,6 +58,14 @@ export class HeroData extends foundry.abstract.TypeDataModel {
         ),
         helpless: new fields.BooleanField({ initial: false }),
         dramaticWoundHelpless: new fields.BooleanField({ initial: false }),
+        // Tracks which Heroes have already given this character First Aid
+        // during the current Action Scene (Combat), so the same healer can't
+        // do it twice in one scene. Reset automatically once the Combat id
+        // changes (i.e. a new Action Scene starts).
+        firstAid: new fields.SchemaField({
+          combatId: new fields.StringField({ initial: "", blank: true }),
+          healedBy: new fields.ArrayField(new fields.StringField()),
+        }),
       }),
 
       heroPoints: new fields.NumberField({ integer: true, min: 0, initial: 1 }),

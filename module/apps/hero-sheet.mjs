@@ -30,6 +30,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollSkill:        HeroSheet._onRollSkill,
       rollAttack:       HeroSheet._onRollAttack,
       rollDefence:      HeroSheet._onRollDefence,
+      rollFirstAid:     HeroSheet._onRollFirstAid,
       // toggleMinorWound: HeroSheet._onToggleMinorWound,
       toggleWoundTrack: HeroSheet._onToggleWoundTrack,
       // Advantages
@@ -240,6 +241,17 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       
       await postVillainPointDamagePrompt(this.document);
     }
+  }
+
+  // ── First Aid ────────────────────────────────────────────────────────────
+  // Manoeuvre + Science, healing the targeted token's regular Wounds.
+  static async _onRollFirstAid() {
+    const target = _getFirstTarget();
+    if (!target) {
+      ui.notifications.warn("Target a token to give First Aid to.");
+      return;
+    }
+    await SeventhSeaDice.rollFirstAid({ healer: this.document, target });
   }
 
   // ── Apply damage from a successful Attack ──────────────────────────────────

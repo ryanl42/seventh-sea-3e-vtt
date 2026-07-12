@@ -125,12 +125,18 @@ export class SeventhSeaActor extends Actor {
 
   /**
    * Heal minor wounds (not Dramatic — those need a Dramatic Scene).
+   * Works for Heroes and non-Brute NPCs (Henchmen/Villains); Brutes track
+   * losses via bruteCount instead and have no Minor Wounds to heal.
    * @param {number} amount
+   * @returns {number} the number of Wounds actually healed (capped by what
+   *   was marked).
    */
   async healMinorWounds(amount) {
-    if (this.type !== "hero") return;
+    if (this.type === "npc" && this.system.npcType === "brute") return 0;
     const current = this.system.wounds.minor;
-    await this.update({ "system.wounds.minor": Math.max(0, current - amount) });
+    const healed  = Math.min(amount, current);
+    if (healed > 0) await this.update({ "system.wounds.minor": current - healed });
+    return healed;
   }
 
   /** @override — provide token bar attributes */

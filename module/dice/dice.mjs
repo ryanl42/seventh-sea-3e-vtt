@@ -358,6 +358,151 @@ export class SeventhSeaDice {
         </div>`,
     });
   }
+
+  // ── First Aid (Manoeuvre + Science, Action Scene) ───────────────────────────
+  //
+  // Dramatic Wounds cannot be healed during an Action Scene — only regular
+  // Wounds, treated on the fly. The Hero rolls Manoeuvre + Science; each Hit
+  // heals one Wound. A given Hero can give First Aid to a given character
+  // only once per Action Scene (tracked against the active Combat's id).
+  // Neither the healer nor the patient may take a Heroic or Defence action
+  // that turn.
+
+  static async rollFirstAid({ healer, target }) {
+    if (!healer || !target) return null;
+
+    if (healer.type !== "hero") {
+      ui.notifications.warn("Only a Hero can give First Aid (Manoeuvre + Science).");
+      return null;
+    }
+
+    const combat = game.combat;
+    if (!combat) {
+      ui.notifications.warn("First Aid during an Action Scene requires an active Combat encounter.");
+      return null;
+    }
+
+    if (target.type === "npc" && target.system.npcType === "brute") {
+      ui.notifications.warn("Brute Squads have no individual Wounds to treat with First Aid.");
+      return null;
+    }
+
+    const firstAid = target.system.wounds?.firstAid ?? { combatId: "", healedBy: [] };
+    const healedBy = firstAid.combatId === combat.id ? (firstAid.healedBy ?? []) : [];
+    if (healedBy.includes(healer.id)) {
+      ui.notifications.warn(`${healer.name} has already given First Aid to ${target.name} this Action Scene.`);
+      return null;
+    }
+
+    const manoeuvreVal = healer.system.combatAptitudes?.manoeuvre?.value ?? 0;
+    const scienceSkill = healer.system.skills?.science ?? { value: 0, specialty: false };
+    const heroPoints   = healer.system.heroPoints ?? 0;
+
+    const dialogResult = await SeventhSeaDice._showFirstAidDialog({
+      healerName: healer.name, targetName: target.name,
+      manoeuvreVal, scienceRank: scienceSkill.value, specialty: scienceSkill.specialty, heroPoints,
+    });
+    if (dialogResult === null) return null;
+
+    const { extraDice } = dialogResult;
+    const finalPool = Math.max(1, manoeuvreVal + scienceSkill.value + extraDice);
+
+    if (extraDice > 0) {
+      await healer.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
+    }
+
+    const threshold = HIT_THRESHOLDS[Math.clamp(scienceSkill.value, 0, 5)];
+    const explodeOn = scienceSkill.specialty ? 9 : 10;
+
+    const allFaces = [];
+    let pending = finalPool;
+    while (pending > 0) {
+      const r = new Roll(`${pending}d10`);
+      await r.evaluate();
+      const faces = r.dice[0].results.map(res => res.result);
+      allFaces.push(...faces);
+      pending = faces.filter(f => f >= explodeOn).length;
+    }
+    const hits = allFaces.filter(f => f >= threshold).length;
+
+    const woundsHealed = await target.healMinorWounds(hits);
+
+    await target.update({
+      "system.wounds.firstAid": { combatId: combat.id, healedBy: [...healedBy, healer.id] },
+    });
+
+    await SeventhSeaDice._postFirstAidChatCard({
+      healer, target, allFaces, threshold, hits, woundsHealed, extraDice,
+    });
+
+    ui.notifications.warn(`${healer.name} and ${target.name} cannot take a Heroic or Defence action this turn — First Aid takes their full attention.`);
+
+    return { hits, woundsHealed };
+  }
+
+  static _showFirstAidDialog({ healerName, targetName, manoeuvreVal, scienceRank, specialty, heroPoints }) {
+    const threshold   = HIT_THRESHOLDS[Math.clamp(scienceRank, 0, 5)];
+    const explodeNote = specialty ? "Specialty: explode on 9–10" : "Explode on 10";
+
+    return new Promise(resolve => {
+      new Dialog({
+        title: `First Aid: ${healerName} → ${targetName}`,
+        content: `
+          <div class="ss-roll-dialog">
+            <div class="dialog-pool-info">
+              <span>Manoeuvre + Science: <strong>${manoeuvreVal} + ${scienceRank}</strong></span>
+              <span>Hit on: <strong>${threshold}+</strong></span>
+              <span class="dialog-explode-note">${explodeNote}</span>
+            </div>
+            <hr/>
+            <div class="dialog-field">
+              <label>Spend Hero Points <em>(${heroPoints} available)</em></label>
+              <input id="ss-hero-points" type="number" value="0" min="0" max="${heroPoints}" />
+              <p class="dialog-hint">Each adds 1d10 to the pool.</p>
+            </div>
+            <p class="dialog-hint">
+              Each Hit heals one Wound (Dramatic Wounds cannot be healed this way).
+              Neither ${healerName} nor ${targetName} may take a Heroic or Defence action this turn.
+            </p>
+          </div>`,
+        buttons: {
+          roll: {
+            label: "Give First Aid",
+            callback: html => resolve({
+              extraDice: Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
+            }),
+          },
+          cancel: { label: "Cancel", callback: () => resolve(null) },
+        },
+        default: "roll",
+      }).render(true);
+    });
+  }
+
+  static async _postFirstAidChatCard({ healer, target, allFaces, threshold, hits, woundsHealed, extraDice }) {
+    const diceHtml = allFaces.map(f =>
+      `<span class="die ${f >= threshold ? "hit" : ""}">${f}</span>`
+    ).join("");
+
+    let footer = "";
+    if (extraDice > 0) footer += `<div class="chat-roll-footer">Spent ${extraDice} Hero Point${extraDice > 1 ? "s" : ""}</div>`;
+    footer += `<div class="chat-roll-footer hp-gained">${woundsHealed} Wound${woundsHealed !== 1 ? "s" : ""} healed (Dramatic Wounds unaffected)</div>`;
+    footer += `<div class="chat-roll-footer result-failure">⚠ Neither ${healer.name} nor ${target.name} may take a Heroic or Defence action this turn</div>`;
+
+    await ChatMessage.create({
+      user:    game.user.id,
+      speaker: ChatMessage.getSpeaker({ actor: healer }),
+      content: `
+        <div class="seventh-sea chat-roll">
+          <div class="chat-roll-label">First Aid: ${healer.name} → ${target.name}</div>
+          <div class="chat-roll-dice">${diceHtml}</div>
+          <div class="chat-roll-summary">
+            Hits: <strong>${hits}</strong>
+          </div>
+          ${footer}
+        </div>`,
+    });
+  }
 }
 
 function _cap(str) {

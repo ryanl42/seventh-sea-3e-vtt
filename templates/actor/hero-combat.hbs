@@ -111,7 +111,11 @@
         <td class="col-value">
           <span class="apt-value">{{system.combatAptitudes.manoeuvre.value}}</span>
         </td>
-        <td class="col-roll"></td>
+        <td class="col-roll">
+          {{#if system.combatAptitudes.manoeuvre.trait}}
+          <button type="button" class="apt-roll-btn" data-action="rollFirstAid" title="Give First Aid to the targeted token (Manoeuvre + Science)">✚ First Aid</button>
+          {{/if}}
+        </td>
       </tr>
 
     </tbody>
