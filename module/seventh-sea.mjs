@@ -6,6 +6,7 @@
 import { HeroData }       from "./actor/hero-data.mjs";
 import { NpcData }        from "./actor/npc-data.mjs";
 import { SeventhSeaActor } from "./actor/actor.mjs";
+import { registerBruteSquadTokenSizeHooks } from "./actor/brute-token-size.mjs";
 import { AdvantageData }  from "./item/advantage-data.mjs";
 import { SorceryData }    from "./item/sorcery-data.mjs";
 import { HeroSheet }      from "./apps/hero-sheet.mjs";
@@ -64,6 +65,7 @@ Hooks.once("init", () => {
   registerVillainySetting();
   registerVillainPointChatListeners();
   registerDramaticWoundHelplessHook();
+  registerBruteSquadTokenSizeHooks();
   registerExtendedActionSetting();
   registerColorThemeSetting();
   game.settings.register("seventh-sea-3e", "migratedWoundMinorPerSegment", {
