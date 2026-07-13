@@ -8,6 +8,7 @@
 import { SeventhSeaDice } from "../dice/dice.mjs";
 import { getTradition }   from "../sorcery/traditions.mjs";
 import { postVillainPointDamagePrompt } from "../combat/vp-chat.mjs";
+import { computeWoundTrack } from "../combat/wound-track.mjs";
 
 const { ActorSheetV2 }               = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -30,6 +31,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollSkill:        HeroSheet._onRollSkill,
       rollAttack:       HeroSheet._onRollAttack,
       rollDefence:      HeroSheet._onRollDefence,
+      rollManoeuvre:    HeroSheet._onRollManoeuvre,
       rollFirstAid:     HeroSheet._onRollFirstAid,
       // toggleMinorWound: HeroSheet._onToggleMinorWound,
       toggleWoundTrack: HeroSheet._onToggleWoundTrack,
@@ -232,15 +234,35 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     if (result && !result.success) {
-      // const missedHits = Math.max(0, result.finalDifficulty - result.hits);
-      //if (missedHits > 0) await this._applyMissedHitsAsWounds(missedHits);
-      if (target?.type === "npc") {
-       const baseDamage = target.system.combatAptitudes.damage ?? 0;
-       if (baseDamage > 0) await this._applyDefenceDamage(baseDamage);
-     } else {        ui.notifications.warn("No NPC targeted — can't determine Damage aptitude. Target the attacking NPC before rolling Defence.");      }
-      
+      // Prefer the targeted token; if none is targeted, fall back to
+      // whichever NPC is currently acting in Combat (the likely attacker),
+      // so a forgotten target doesn't silently skip the Wounds.
+      const attacker = target?.type === "npc" ? target : _fallbackAttacker();
+
+      if (attacker) {
+        const baseDamage = attacker.system.combatAptitudes.damage ?? 0;
+        if (baseDamage > 0) {
+          await this._applyDefenceDamage(baseDamage, attacker);
+        } else {
+          ui.notifications.warn(`${attacker.name} has no Damage aptitude set (reads as 0) — no Wounds applied from the aptitude.`);
+        }
+      } else {
+        const msg = "No NPC targeted, and no NPC is the current Combatant — can't determine Damage aptitude. Target the attacking NPC before rolling Defence.";
+        ui.notifications.warn(msg);
+        await ChatMessage.create({
+          speaker: ChatMessage.getSpeaker({ actor: this.document }),
+          whisper: ChatMessage.getWhisperRecipients("GM"),
+          content: `<div class="seventh-sea chat-roll"><div class="chat-roll-label">Defence — Damage Not Applied</div><p class="vp-prompt-text">${msg}</p></div>`,
+        });
+      }
+
       await postVillainPointDamagePrompt(this.document);
     }
+  }
+
+  // ── Manoeuvre (catch-all — any Skill) ───────────────────────────────────────
+  static async _onRollManoeuvre() {
+    await SeventhSeaDice.rollManoeuvre({ actor: this.document });
   }
 
   // ── First Aid ────────────────────────────────────────────────────────────
@@ -342,9 +364,20 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ── Apply wounds from a failed Defence roll ────────────────────────────────
   //async _applyMissedHitsAsWounds(missedHits) {
   //  const { dramaticGained } = await this.document.applyWounds(missedHits, { dramaticLimit: 4 });
-  async _applyDefenceDamage(amount) {
-        const { dramaticGained } = await this.document.applyWounds(amount, { dramaticLimit: 4 });
- 
+  async _applyDefenceDamage(amount, attacker) {
+    const { dramaticGained } = await this.document.applyWounds(amount, { dramaticLimit: 4 });
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.document }),
+      content: `<div class="seventh-sea chat-roll">
+        <div class="chat-roll-label">Defence Failed — Wounds Applied</div>
+        <div class="chat-roll-summary">
+          <strong>${this.document.name}</strong> takes <strong>${amount}</strong> Wound${amount > 1 ? "s" : ""}
+          from ${attacker?.name ?? "the attacker"}'s Damage aptitude.
+        </div>
+      </div>`,
+    });
+
     if (dramaticGained > 0) {
       ui.notifications.info(`${this.document.name} suffers ${dramaticGained} Dramatic Wound${dramaticGained > 1 ? "s" : ""}!`);
     }
@@ -352,19 +385,21 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ── Minor Wound dot track ───────────────────────────────────────────────────
 
-  // static async _onToggleMinorWound(event, target) {
-  //   const index   = Number(target.dataset.index);
-  //   const current = this.document.system.wounds.minor;
-  //   const next    = current === index + 1 ? index : index + 1;
-  //   await this.document.update({ "system.wounds.minor": next });
   static async _onToggleWoundTrack(event, target) {
-    const flatIndex     = Number(target.dataset.index);
-    const actor         = this.document;
-    const toughness     = actor._toughnessValue();
-    const dramaticCount = actor.system.wounds.dramatic.filter(Boolean).length;
-    const currentTotal  = dramaticCount * (toughness + 1) + actor.system.wounds.minor;
-    const newTotal       = flatIndex === currentTotal - 1 ? flatIndex : flatIndex + 1;
+    const flatIndex = Number(target.dataset.index);
+    const actor      = this.document;
+    const toughness  = actor._toughnessValue();
+    const track = computeWoundTrack(toughness, actor.system.wounds.minorPerSegment, actor.system.wounds.dramatic, 4);
 
+    // Highest currently-filled flat index across the whole track, so
+    // clicking it again toggles it off instead of extending further.
+    let currentTotal = 0;
+    for (const seg of track) {
+      for (const dot of seg.dots) if (dot.filled) currentTotal = dot.flatIndex + 1;
+      if (seg.marked) currentTotal = seg.dramaticFlatIndex + 1;
+    }
+
+    const newTotal = flatIndex === currentTotal - 1 ? flatIndex : flatIndex + 1;
     await actor.setWoundLevel(newTotal, { dramaticLimit: 4 });
   }
 
@@ -382,11 +417,8 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         content: "<p>Clear 1 Backlash by taking <strong>1 Wound</strong>?</p>",
       });
       if (!confirmed) return;
-      const minor = this.document.system.wounds.minor;
-      await Promise.all([
-        item.update({ "system.resource.value": next }),
-        this.document.update({ "system.wounds.minor": minor + 1 }),
-      ]);
+      await item.update({ "system.resource.value": next });
+      await this.document.applyWounds(1);
       return;
     }
     await item.update({ "system.resource.value": next });
@@ -424,6 +456,16 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 function _getFirstTarget() {
   const target = game.user.targets.first();
   return target?.actor ?? null;
+}
+
+/**
+ * Falls back to whichever NPC is the current Combatant in the active Combat
+ * (the likely attacker on a Defence roll) when no token is targeted, so a
+ * forgotten target doesn't silently skip applying Wounds.
+ */
+function _fallbackAttacker() {
+  const combatantActor = game.combat?.combatant?.actor;
+  return combatantActor?.type === "npc" ? combatantActor : null;
 }
 
 /**

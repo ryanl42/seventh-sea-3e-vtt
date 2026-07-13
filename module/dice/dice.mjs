@@ -9,6 +9,16 @@ import { getExtendedActions, addExtendedActionProgress } from "../settings/exten
  
 const HIT_THRESHOLDS = [10, 9, 8, 7, 6, 5];
 
+const SKILL_LABELS = {
+  investigation: "Investigation", stealth: "Stealth", theft: "Theft",
+  legends: "Legends", sorcery: "Sorcery", theology: "Theology",
+  aim: "Aim", athletics: "Athletics", melee: "Melee",
+  sailing: "Sailing", strategy: "Strategy", survival: "Survival",
+  intrigue: "Intrigue", protocol: "Protocol", selfControl: "Self-Control",
+  engineering: "Engineering", humanities: "Humanities", science: "Science",
+  empathy: "Empathy", persuasion: "Persuasion", perform: "Perform",
+};
+
 export class SeventhSeaDice {
 
   /**
@@ -359,6 +369,112 @@ export class SeventhSeaDice {
     });
   }
 
+  // ── Manoeuvre (catch-all — any Skill) ───────────────────────────────────────
+  //
+  // Manoeuvre isn't tied to one Skill — it's a general-purpose Trait used
+  // for all sorts of things during an Action Scene, paired with whichever
+  // Skill fits what the Hero is trying to do. (First Aid, below, is just one
+  // specific use of it: Manoeuvre + Science.)
+
+  static async rollManoeuvre({ actor, difficulty = 2 }) {
+    const system    = actor?.system;
+    const manoeuvre = system?.combatAptitudes?.manoeuvre;
+    if (!manoeuvre?.trait) {
+      ui.notifications.warn(`${actor?.name ?? "This character"} has no Trait linked to Manoeuvre yet — set one on the Combat tab.`);
+      return null;
+    }
+
+    const manoeuvreVal    = manoeuvre.value ?? 0;
+    const heroPoints      = system?.heroPoints ?? 0;
+    const skills          = system?.skills ?? {};
+    const extendedActions = getExtendedActions();
+
+    const dialogResult = await SeventhSeaDice._showManoeuvreDialog({
+      manoeuvreTrait: manoeuvre.trait, manoeuvreVal, skills, difficulty, heroPoints, extendedActions,
+    });
+    if (dialogResult === null) return null;
+
+    const { chosenSkill, finalDifficulty, extraDice, forceFate, extendedActionId } = dialogResult;
+    const skillEntry = skills[chosenSkill] ?? { value: 0, specialty: false };
+    const finalPool  = Math.max(1, manoeuvreVal + skillEntry.value + extraDice);
+
+    if (extraDice > 0 && actor) {
+      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
+    }
+
+    return SeventhSeaDice._resolveRoll({
+      actor, label: `Manoeuvre [${_cap(manoeuvre.trait)}] + ${_cap(chosenSkill)}`,
+      finalPool, skillRank: skillEntry.value, specialty: skillEntry.specialty, finalDifficulty,
+      extraDice, forceFate, includeDramaticWounds: false, extendedActionId,
+    });
+  }
+
+  static _showManoeuvreDialog({ manoeuvreTrait, manoeuvreVal, skills, difficulty, heroPoints, extendedActions = [] }) {
+    const skillOptions = Object.entries(skills).map(([key, s]) =>
+      `<option value="${key}">${_cap(key)} (${s.value})</option>`
+    ).join("");
+
+    const eaOptions = extendedActions.map(a =>
+      `<option value="${a.id}">${a.label ? _cap(a.label) : "Extended Action"} (${a.current}/${a.target})</option>`
+    ).join("");
+    const eaField = extendedActions.length > 0 ? `
+            <div class="dialog-field">
+              <label>Contribute to</label>
+              <select id="ss-contribute-ea">
+                <option value="">— None (Hero Points as normal) —</option>
+                ${eaOptions}
+              </select>
+              <p class="dialog-hint">Hits beyond Difficulty count toward the chosen Goal instead of granting Hero Points.</p>
+            </div>` : "";
+
+    return new Promise(resolve => {
+      new Dialog({
+        title: "Roll Manoeuvre",
+        content: `
+          <div class="ss-roll-dialog">
+            <div class="dialog-pool-info">
+              <span>Manoeuvre Trait: <strong>${_cap(manoeuvreTrait)} (${manoeuvreVal})</strong></span>
+            </div>
+            <p class="dialog-hint">Manoeuvre is a catch-all — pair it with whichever Skill fits the action.</p>
+            <hr/>
+            <div class="dialog-field">
+              <label>Skill</label>
+              <select id="ss-skill">${skillOptions}</select>
+            </div>
+            <div class="dialog-field">
+              <label>Difficulty</label>
+              <input id="ss-difficulty" type="number" value="${difficulty}" min="1" max="20" />
+            </div>
+            <div class="dialog-field">
+              <label>Spend Hero Points <em>(${heroPoints} available)</em></label>
+              <input id="ss-hero-points" type="number" value="0" min="0" max="${heroPoints}" />
+              <p class="dialog-hint">Each adds 1d10 to the pool.</p>
+            </div>
+            <div class="dialog-field">
+              <label>Force Fate</label>
+              <input id="ss-force-fate" type="checkbox" />
+              <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
+            </div>
+            ${eaField}
+          </div>`,
+        buttons: {
+          roll: {
+            label: "Roll",
+            callback: html => resolve({
+              chosenSkill:      html.find("#ss-skill").val(),
+              finalDifficulty:  parseInt(html.find("#ss-difficulty").val()) || difficulty,
+              extraDice:        Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
+              forceFate:        html.find("#ss-force-fate").is(":checked"),
+              extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null,
+            }),
+          },
+          cancel: { label: "Cancel", callback: () => resolve(null) },
+        },
+        default: "roll",
+      }).render(true);
+    });
+  }
+
   // ── First Aid (Manoeuvre + Science, Action Scene) ───────────────────────────
   //
   // Dramatic Wounds cannot be healed during an Action Scene — only regular
@@ -501,6 +617,117 @@ export class SeventhSeaDice {
           </div>
           ${footer}
         </div>`,
+    });
+  }
+
+  // ── Manoeuvre (catch-all Action Scene action) ────────────────────────────────
+  //
+  // Manoeuvre isn't tied to one Skill — during an Action Scene it can pair
+  // with whichever Skill fits what the Hero is trying to do (climb a mast,
+  // talk down a guard, spot a threat, etc.). The Trait is always the one the
+  // Hero has linked to Manoeuvre; the Skill is chosen at roll time.
+
+  static async rollManoeuvre({ actor, difficulty = 2 }) {
+    if (!actor) return null;
+    if (actor.type !== "hero") {
+      ui.notifications.warn("Only a Hero can roll Manoeuvre (it draws on a Skill list NPCs don't track individually).");
+      return null;
+    }
+
+    const traitKey = actor.system.combatAptitudes?.manoeuvre?.trait;
+    if (!traitKey) {
+      ui.notifications.warn(`${actor.name} has no Trait linked to Manoeuvre yet — set one on the Combat tab.`);
+      return null;
+    }
+
+    const traitVal     = actor.system.traits?.[traitKey]?.value ?? 0;
+    const skills       = actor.system.skills ?? {};
+    const heroPoints   = actor.system.heroPoints ?? 0;
+    const extendedActions = getExtendedActions();
+
+    const dialogResult = await SeventhSeaDice._showManoeuvreDialog({
+      actorName: actor.name, traitKey, traitVal, skills, difficulty, heroPoints, extendedActions,
+    });
+    if (dialogResult === null) return null;
+
+    const { chosenSkill, finalDifficulty, extraDice, forceFate, extendedActionId } = dialogResult;
+    const skill     = skills[chosenSkill] ?? { value: 0, specialty: false };
+    const finalPool = Math.max(1, traitVal + skill.value + extraDice);
+
+    if (extraDice > 0) {
+      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
+    }
+
+    return SeventhSeaDice._resolveRoll({
+      actor, label: `Manoeuvre [${_cap(traitKey)} + ${SKILL_LABELS[chosenSkill] ?? _cap(chosenSkill)}]`,
+      finalPool, skillRank: skill.value, specialty: skill.specialty, finalDifficulty,
+      extraDice, forceFate, includeDramaticWounds: false, extendedActionId,
+    });
+  }
+
+  static _showManoeuvreDialog({ actorName, traitKey, traitVal, skills, difficulty, heroPoints, extendedActions = [] }) {
+    const skillOptions = Object.entries(skills).map(([key, s]) =>
+      `<option value="${key}">${SKILL_LABELS[key] ?? _cap(key)} (${s.value}${s.specialty ? " ◈" : ""})</option>`
+    ).join("");
+
+    const eaOptions = extendedActions.map(a =>
+      `<option value="${a.id}">${a.label ? _cap(a.label) : "Extended Action"} (${a.current}/${a.target})</option>`
+    ).join("");
+    const eaField = extendedActions.length > 0 ? `
+            <div class="dialog-field">
+              <label>Contribute to</label>
+              <select id="ss-contribute-ea">
+                <option value="">— None (Hero Points as normal) —</option>
+                ${eaOptions}
+              </select>
+              <p class="dialog-hint">Hits beyond Difficulty count toward the chosen Goal instead of granting Hero Points.</p>
+            </div>` : "";
+
+    return new Promise(resolve => {
+      new Dialog({
+        title: `Manoeuvre: ${actorName}`,
+        content: `
+          <div class="ss-roll-dialog">
+            <div class="dialog-pool-info">
+              <span>Manoeuvre Trait: <strong>${_cap(traitKey)} (${traitVal})</strong></span>
+            </div>
+            <hr/>
+            <div class="dialog-field">
+              <label>Skill</label>
+              <select id="ss-skill">${skillOptions}</select>
+              <p class="dialog-hint">Pick whichever Skill fits what the Hero is trying to do.</p>
+            </div>
+            <div class="dialog-field">
+              <label>Difficulty</label>
+              <input id="ss-difficulty" type="number" value="${difficulty}" min="1" max="20" />
+            </div>
+            <div class="dialog-field">
+              <label>Spend Hero Points <em>(${heroPoints} available)</em></label>
+              <input id="ss-hero-points" type="number" value="0" min="0" max="${heroPoints}" />
+              <p class="dialog-hint">Each adds 1d10 to the pool.</p>
+            </div>
+            <div class="dialog-field">
+              <label>Force Fate</label>
+              <input id="ss-force-fate" type="checkbox" />
+              <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
+            </div>
+            ${eaField}
+          </div>`,
+        buttons: {
+          roll: {
+            label: "Roll",
+            callback: html => resolve({
+              chosenSkill:     html.find("#ss-skill").val(),
+              finalDifficulty: parseInt(html.find("#ss-difficulty").val()) || difficulty,
+              extraDice:       Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
+              forceFate:       html.find("#ss-force-fate").is(":checked"),
+              extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null,
+            }),
+          },
+          cancel: { label: "Cancel", callback: () => resolve(null) },
+        },
+        default: "roll",
+      }).render(true);
     });
   }
 }

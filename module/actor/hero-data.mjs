@@ -51,7 +51,13 @@ export class HeroData extends foundry.abstract.TypeDataModel {
       }),
 
       wounds: new fields.SchemaField({
-        minor:    new fields.NumberField({ integer: true, min: 0, initial: 0 }),
+        // Each entry is how many of that segment's Toughness dots are
+        // filled (independent per segment, so a completed/Dramatic segment
+        // can still be partially healed by First Aid without un-marking it).
+        minorPerSegment: new fields.ArrayField(
+          new fields.NumberField({ integer: true, min: 0, initial: 0 }),
+          { initial: [0, 0, 0, 0] }
+        ),
         dramatic: new fields.ArrayField(
           new fields.BooleanField({ initial: false }),
           { initial: [false, false, false, false] }
@@ -96,7 +102,7 @@ export class HeroData extends foundry.abstract.TypeDataModel {
     const toughness = this.combatAptitudes.toughness.value ?? 2;
     this.toughnessValue     = toughness;
     this.dramaticWoundCount = this.wounds.dramatic.filter(Boolean).length;
-    this.woundTotal         = this.wounds.minor + (this.dramaticWoundCount * toughness);
+    this.woundTotal         = this.wounds.minorPerSegment.reduce((sum, n) => sum + n, 0);
     this.woundMax           = toughness * 4;
 
     // Expose as {value,max} objects that Foundry token bars can read
@@ -109,25 +115,13 @@ export class HeroData extends foundry.abstract.TypeDataModel {
       max:   Math.max(this.heroPoints, this.lowestTrait),
     };
 
-    // Minor Wound dot track: length = Toughness, filled up to current minor wounds.
     // Wound track: 4 segments (one per Dramatic Wound box). Each segment is
     // `toughness` Minor Wound dots followed by its Dramatic Wound box —
-    // e.g. Toughness 2 renders as OO-D-OO-D-OO-D-OO-D.
-    // The active (not-yet-marked) segment fills its dots up to current minor
-    // wounds; already-marked segments show fully filled dots; later segments
-    // show empty dots.
+    // e.g. Toughness 2 renders as OO-D-OO-D-OO-D-OO-D. Each segment tracks
+    // its own dot fill independently (see wounds.minorPerSegment), so a
+    // completed segment can be partially healed without losing its
+    // Dramatic Wound mark.
     this.wounds.trackLength = toughness;
-    // const dramatic     = this.wounds.dramatic;
-    // const activeIndex  = dramatic.findIndex(marked => !marked); // -1 = fully Helpless
-    // this.wounds.track = dramatic.map((marked, segIndex) => {
-    //   const isActive = segIndex === activeIndex;
-    //   const dots = Array.from({ length: toughness }, (_, dotIndex) => {
-    //     if (marked)   return true;                     // segment already converted — show full
-    //     if (isActive) return dotIndex < this.wounds.minor;
-    //     return false;                                   // not yet reached
-    //   });
-    //   return { dots, marked, active: isActive };
-    // });
-    this.wounds.track = computeWoundTrack(toughness, this.wounds.minor, this.wounds.dramatic, 4);
+    this.wounds.track = computeWoundTrack(toughness, this.wounds.minorPerSegment, this.wounds.dramatic, 4);
   }
 }

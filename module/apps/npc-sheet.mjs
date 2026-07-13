@@ -3,6 +3,8 @@
  * Brutes Squad / Henchman / Villain.
  */
 
+import { computeWoundTrack } from "../combat/wound-track.mjs";
+
 const { ActorSheetV2 }               = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -45,10 +47,15 @@ export class NPCSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const actor         = this.document;
     const dramaticLimit = actor.system.dramaticWoundLimit ?? 4;
     const toughness     = actor._toughnessValue();
-    const dramaticCount = actor.system.wounds.dramatic.filter(Boolean).length;
-    const currentTotal  = dramaticCount * (toughness + 1) + actor.system.wounds.minor;
-    const newTotal       = flatIndex === currentTotal - 1 ? flatIndex : flatIndex + 1;
+    const track = computeWoundTrack(toughness, actor.system.wounds.minorPerSegment, actor.system.wounds.dramatic, dramaticLimit);
 
+    let currentTotal = 0;
+    for (const seg of track) {
+      for (const dot of seg.dots) if (dot.filled) currentTotal = dot.flatIndex + 1;
+      if (seg.marked) currentTotal = seg.dramaticFlatIndex + 1;
+    }
+
+    const newTotal = flatIndex === currentTotal - 1 ? flatIndex : flatIndex + 1;
     await actor.setWoundLevel(newTotal, { dramaticLimit });
   }
 }

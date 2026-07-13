@@ -37,12 +37,12 @@ Hooks.once("init", () => {
   CONFIG.Actor.trackableAttributes = {
     hero: {
       bar:   ["wounds", "heroPointsBar"],
-      value: ["wounds.minor", "wounds.dramaticWoundCount",
+      value: ["woundTotal", "wounds.dramaticWoundCount",
               "heroPoints",   "toughnessValue"],
     },
     npc: {
       bar:   ["wounds"],
-      value: ["wounds.minor", "extendedAction.current"],
+      value: ["woundTotal", "extendedAction.current"],
     },
   };
 
@@ -66,6 +66,9 @@ Hooks.once("init", () => {
   registerDramaticWoundHelplessHook();
   registerExtendedActionSetting();
   registerColorThemeSetting();
+  game.settings.register("seventh-sea-3e", "migratedWoundMinorPerSegment", {
+    scope: "world", config: false, type: Boolean, default: false,
+  });
 
   console.log("7thSea3e | init complete");
 });
@@ -79,8 +82,47 @@ Hooks.once("ready", () => {
   initVillainHUD();
   initExtendedActionHUD();
   applyColorTheme(game.settings.get("seventh-sea-3e", "colorTheme"));
+  migrateWoundMinorPerSegment();
   console.log("7thSea3e | ready fired");
 });
+
+// ── One-time migration: wounds.minor (single number) → wounds.minorPerSegment ──
+// Actors saved before the per-segment Wound track existed have their old
+// `wounds.minor` value sitting unused in their source data (Foundry keeps
+// fields dropped from the schema in the raw source), and a fresh
+// minorPerSegment defaulted to all zeros. Left alone this makes First Aid
+// (and the wound track display) look like every already-Dramatic segment
+// has 0 regular Wounds marked. This runs once per world, GM only, and
+// reconstructs minorPerSegment: already-Dramatic segments are assumed fully
+// filled (that was the only possible state before partial healing existed),
+// and the old minor value is carried into the current active segment.
+async function migrateWoundMinorPerSegment() {
+  if (!game.user.isGM) return;
+  if (game.settings.get("seventh-sea-3e", "migratedWoundMinorPerSegment")) return;
+
+  const actors = game.actors.filter(a => a.type === "hero" || a.type === "npc");
+  for (const actor of actors) {
+    if (actor.type === "npc" && actor.system.npcType === "brute") continue;
+
+    const source = actor._source.system?.wounds ?? {};
+    if (Array.isArray(source.minorPerSegment)) continue; // already migrated / created fresh
+
+    const oldMinor  = typeof source.minor === "number" ? source.minor : 0;
+    const dramatic  = actor.system.wounds.dramatic ?? [false, false, false, false];
+    const toughness = actor._toughnessValue();
+    const activeIndex = dramatic.findIndex(marked => !marked);
+
+    const minorPerSegment = dramatic.map((marked, i) => {
+      if (marked) return toughness;
+      if (i === activeIndex) return Math.min(oldMinor, toughness);
+      return 0;
+    });
+
+    await actor.update({ "system.wounds.minorPerSegment": minorPerSegment });
+  }
+
+  await game.settings.set("seventh-sea-3e", "migratedWoundMinorPerSegment", true);
+}
 
 // ── Color Theme — actor sheets, Villainy HUD, Extended Action HUD ─────────────
 // A client-scoped setting (each player picks their own) toggling between the
@@ -165,6 +207,7 @@ Hooks.on("getActorContextOptions", (html, options) => {
       });
 
       if (amount === null || amount <= 0) return;
+
       const result = await actor.applyWounds(amount);
       ChatMessage.create({
         content: `<div class="seventh-sea chat-roll">
@@ -174,6 +217,60 @@ Hooks.on("getActorContextOptions", (html, options) => {
             Minor: <strong>${result.minor}</strong> |
             Dramatic: <strong>${result.dramaticCount}</strong>
             ${result.helpless ? " | <span class='result-failure'>⚠ HELPLESS</span>" : ""}
+          </div>
+        </div>`,
+        speaker: ChatMessage.getSpeaker({ actor }),
+      });
+    },
+  });
+
+  options.push({
+    name:  "Remove Wounds",
+    icon:  '<i class="fas fa-heart"></i>',
+    condition: li => {
+      const id    = li instanceof HTMLElement ? li.dataset.documentId : li.data?.("documentId") ?? li.data?.("actorId");
+      const actor = game.actors.get(id);
+      return !!actor && !(actor.type === "npc" && actor.system.npcType === "brute") && game.user.isGM;
+    },
+    callback: async li => {
+      const id    = li instanceof HTMLElement ? li.dataset.documentId : li.data?.("documentId") ?? li.data?.("actorId");
+      const actor = game.actors.get(id);
+      if (!actor) return;
+
+      const amount = await new Promise(resolve => {
+        new Dialog({
+          title:   `Remove Wounds from ${actor.name}`,
+          content: `
+            <div class="ss-roll-dialog">
+              <div class="dialog-field">
+                <label>Wounds to remove</label>
+                <input id="wound-amount" type="number" value="1" min="0" max="20" />
+              </div>
+              <p class="dialog-hint">
+                Only regular Wounds are removed — Dramatic Wounds are never
+                touched here (they need a real Healing/Dramatic Scene). This
+                is the same protection First Aid uses.
+              </p>
+            </div>`,
+          buttons: {
+            apply: {
+              label:    "Remove",
+              callback: html => resolve(parseInt(html.find("#wound-amount").val()) || 0),
+            },
+            cancel: { label: "Cancel", callback: () => resolve(null) },
+          },
+          default: "apply",
+        }).render(true);
+      });
+
+      if (amount === null || amount <= 0) return;
+      const healed = await actor.healMinorWounds(amount);
+      ChatMessage.create({
+        content: `<div class="seventh-sea chat-roll">
+          <div class="chat-roll-label">${actor.name} — Wounds Removed</div>
+          <div class="chat-roll-summary">
+            Removed <strong>${healed}</strong> wound${healed !== 1 ? "s" : ""}.
+            Dramatic Wounds unaffected.
           </div>
         </div>`,
         speaker: ChatMessage.getSpeaker({ actor }),

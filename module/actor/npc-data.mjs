@@ -32,7 +32,10 @@ export class NpcData extends foundry.abstract.TypeDataModel {
 
       // ── Wounds ──────────────────────────────────────────────────────────
       wounds: new fields.SchemaField({
-        minor:    new fields.NumberField({ integer: true, min: 0, initial: 0 }),
+        minorPerSegment: new fields.ArrayField(
+          new fields.NumberField({ integer: true, min: 0, initial: 0 }),
+          { initial: [0, 0, 0, 0] }
+        ),
         dramatic: new fields.ArrayField(
           new fields.BooleanField({ initial: false }),
           { initial: [false, false, false, false] }
@@ -70,25 +73,14 @@ export class NpcData extends foundry.abstract.TypeDataModel {
     // Token bar values
     const toughness      = this.combatAptitudes.toughness ?? 2;
     this.toughnessValue  = toughness;
-    this.woundTotal      = this.wounds.minor + (this.dramaticWoundCount * toughness);
+    this.woundTotal      = this.wounds.minorPerSegment.reduce((sum, n) => sum + n, 0);
     this.woundMax        = toughness * this.dramaticWoundLimit;
 
     if (this.npcType === "brute") {
       this.bruteTrack = Array.from({ length: this.bruteCount }, () => true);
     } else {
-      const dramatic    = this.wounds.dramatic.slice(0, this.dramaticWoundLimit);
-      const activeIndex = dramatic.findIndex(marked => !marked);
       this.wounds.trackLength = toughness;
-      // this.wounds.track = dramatic.map((marked, segIndex) => {
-      //   const isActive = segIndex === activeIndex;
-      //   const dots = Array.from({ length: toughness }, (_, dotIndex) => {
-      //     if (marked)   return true;
-      //     if (isActive) return dotIndex < this.wounds.minor;
-      //     return false;
-      //   });
-      //   return { dots, marked, active: isActive };
-      // });
-      this.wounds.track = computeWoundTrack(toughness, this.wounds.minor, this.wounds.dramatic, this.dramaticWoundLimit);
+      this.wounds.track = computeWoundTrack(toughness, this.wounds.minorPerSegment, this.wounds.dramatic, this.dramaticWoundLimit);
     }
   }
 }

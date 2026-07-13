@@ -10,24 +10,29 @@
  * Track shape for Toughness T, dramaticLimit N segments:
  *   [T dots][1 box] repeated N times — e.g. Toughness 2, 4 segments:
  *   OO-D-OO-D-OO-D-OO-D  (flat indices 0-2 dots, 3 box, 4-6 dots, 7 box, ...)
+ *
+ * `minorPerSegment` holds each segment's own dot fill count independently —
+ * including already-Dramatic segments, which normally show fully filled but
+ * can be partially healed by First Aid (regular Wounds only, never the
+ * Dramatic Wound box itself) without un-marking the Dramatic Wound.
  */
-export function computeWoundTrack(toughness, minor, dramatic, dramaticLimit) {
+export function computeWoundTrack(toughness, minorPerSegment, dramatic, dramaticLimit) {
   const relevant    = dramatic.slice(0, dramaticLimit);
   const activeIndex = relevant.findIndex(marked => !marked); // -1 = fully Helpless
 
   return relevant.map((marked, segIndex) => {
-    const isActive = segIndex === activeIndex;
+    const filled  = minorPerSegment[segIndex] ?? 0;
     const segStart = segIndex * (toughness + 1);
 
     const dots = Array.from({ length: toughness }, (_, dotIndex) => ({
-      filled:    marked || (isActive && dotIndex < minor),
+      filled:    dotIndex < filled,
       flatIndex: segStart + dotIndex,
     }));
 
     return {
       dots,
       marked,
-      active:           isActive,
+      active:            segIndex === activeIndex,
       dramaticFlatIndex: segStart + toughness,
     };
   });
