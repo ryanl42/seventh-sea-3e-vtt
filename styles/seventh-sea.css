@@ -1012,6 +1012,45 @@ body[data-ss-theme="classic"] {
   font-style: italic;
 }
 
+/* Per-Arcana entries (each Arcana is its own Item, attached to a Sorte item) */
+.arcana-items {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--ss-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arcana-item-block {
+  background: rgba(255,255,255,0.25);
+  border: 1px solid var(--ss-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.arcana-item-name {
+  font-weight: bold;
+  font-size: 0.88em;
+  color: #1a3a6b;
+  margin-bottom: 4px;
+}
+
+.arcana-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.arcana-item-row:last-child { margin-bottom: 0; }
+
+.arcana-item-desc {
+  font-size: 0.78em;
+  color: #888;
+  font-style: italic;
+}
+
 /* ── Arcana chat cards ────────────────────────────────── */
 .sorte-reference,
 .sorte-weave {

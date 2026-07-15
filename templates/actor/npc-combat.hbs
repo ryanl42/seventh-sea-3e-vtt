@@ -1,0 +1,152 @@
+{{!-- NPC Combat Aptitudes --}}
+<div class="npc-combat">
+
+  <div class="section-heading">Combat Aptitudes</div>
+
+  {{#if (eq system.npcType "brute")}}
+
+  <div class="aptitude-grid">
+    <div class="aptitude-row">
+      <label>Attack</label>
+      <input type="number" value="{{system.combatAptitudes.attack.value}}" min="0" max="10" disabled />
+    </div>
+    <div class="aptitude-row">
+      <label>Defence</label>
+      <input type="number" value="{{system.combatAptitudes.defence.value}}" min="0" max="10" disabled />
+      <span class="wounds-caption">Brute Squads have no Defence rating</span>
+    </div>
+    <div class="aptitude-row">
+      <label>Damage</label>
+      <input type="number" value="{{system.combatAptitudes.damage.value}}" min="0" max="10" disabled />
+    </div>
+    <div class="aptitude-row">
+      <label>Toughness</label>
+      <input type="number" name="system.combatAptitudes.toughness.value" value="{{system.combatAptitudes.toughness.value}}"
+             min="0" max="10" {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+    <div class="aptitude-row">
+      <label>Manoeuvre</label>
+      <input type="number" name="system.combatAptitudes.manoeuvre.value" value="{{system.combatAptitudes.manoeuvre.value}}"
+             min="0" max="10" {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+  </div>
+
+  <div class="section-heading">Extended Action Tracker</div>
+  <div class="extended-action-row">
+    <label>Target</label>
+    <input type="number" name="system.extendedAction.target" value="{{system.extendedAction.target}}" min="0"
+           {{#unless isEditable}}disabled{{/unless}} />
+    <label>Current</label>
+    <input type="number" name="system.extendedAction.current" value="{{system.extendedAction.current}}" min="0"
+           {{#unless isEditable}}disabled{{/unless}} />
+  </div>
+
+  {{else}}
+
+  <p class="hint">Assign a different Trait to each Aptitude, exactly as for Heroes.</p>
+
+  <table class="aptitude-table">
+    <thead>
+      <tr>
+        <th>Aptitude</th>
+        <th>Trait</th>
+        <th class="col-value">Value</th>
+        <th class="col-roll"></th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td class="apt-label">Attack</td>
+        <td>
+          <select name="system.combatAptitudes.attack.trait" {{#unless isEditable}}disabled{{/unless}}>
+            <option value="">— choose —</option>
+            <option value="brawn"   {{#if (eq system.combatAptitudes.attack.trait "brawn")}}selected{{/if}}>Brawn</option>
+            <option value="finesse" {{#if (eq system.combatAptitudes.attack.trait "finesse")}}selected{{/if}}>Finesse</option>
+            <option value="resolve" {{#if (eq system.combatAptitudes.attack.trait "resolve")}}selected{{/if}}>Resolve</option>
+            <option value="panache" {{#if (eq system.combatAptitudes.attack.trait "panache")}}selected{{/if}}>Panache</option>
+            <option value="wits"    {{#if (eq system.combatAptitudes.attack.trait "wits")}}selected{{/if}}>Wits</option>
+          </select>
+        </td>
+        <td class="col-value"><span class="apt-value">{{system.combatAptitudes.attack.value}}</span></td>
+        <td class="col-roll">
+          {{#if system.combatAptitudes.attack.trait}}
+          <button type="button" class="apt-roll-btn" data-action="rollAttack" title="Roll Attack">⚔ Roll</button>
+          {{/if}}
+        </td>
+      </tr>
+
+      <tr>
+        <td class="apt-label">Defence</td>
+        <td>
+          <select name="system.combatAptitudes.defence.trait" {{#unless isEditable}}disabled{{/unless}}>
+            <option value="">— choose —</option>
+            <option value="brawn"   {{#if (eq system.combatAptitudes.defence.trait "brawn")}}selected{{/if}}>Brawn</option>
+            <option value="finesse" {{#if (eq system.combatAptitudes.defence.trait "finesse")}}selected{{/if}}>Finesse</option>
+            <option value="resolve" {{#if (eq system.combatAptitudes.defence.trait "resolve")}}selected{{/if}}>Resolve</option>
+            <option value="panache" {{#if (eq system.combatAptitudes.defence.trait "panache")}}selected{{/if}}>Panache</option>
+            <option value="wits"    {{#if (eq system.combatAptitudes.defence.trait "wits")}}selected{{/if}}>Wits</option>
+          </select>
+        </td>
+        <td class="col-value"><span class="apt-value">{{system.combatAptitudes.defence.value}}</span></td>
+        <td class="col-roll">
+          {{#if system.combatAptitudes.defence.trait}}
+          <button type="button" class="apt-roll-btn" data-action="rollDefence" title="Roll Defence">🛡 Roll</button>
+          {{/if}}
+        </td>
+      </tr>
+
+      <tr>
+        <td class="apt-label">Damage</td>
+        <td>
+          <select name="system.combatAptitudes.damage.trait" {{#unless isEditable}}disabled{{/unless}}>
+            <option value="">— choose —</option>
+            <option value="brawn"   {{#if (eq system.combatAptitudes.damage.trait "brawn")}}selected{{/if}}>Brawn</option>
+            <option value="finesse" {{#if (eq system.combatAptitudes.damage.trait "finesse")}}selected{{/if}}>Finesse</option>
+            <option value="resolve" {{#if (eq system.combatAptitudes.damage.trait "resolve")}}selected{{/if}}>Resolve</option>
+            <option value="panache" {{#if (eq system.combatAptitudes.damage.trait "panache")}}selected{{/if}}>Panache</option>
+            <option value="wits"    {{#if (eq system.combatAptitudes.damage.trait "wits")}}selected{{/if}}>Wits</option>
+          </select>
+        </td>
+        <td class="col-value"><span class="apt-value">{{system.combatAptitudes.damage.value}}</span></td>
+        <td class="col-roll"></td>
+      </tr>
+
+      <tr>
+        <td class="apt-label">Toughness</td>
+        <td>
+          <select name="system.combatAptitudes.toughness.trait" {{#unless isEditable}}disabled{{/unless}}>
+            <option value="">— choose —</option>
+            <option value="brawn"   {{#if (eq system.combatAptitudes.toughness.trait "brawn")}}selected{{/if}}>Brawn</option>
+            <option value="finesse" {{#if (eq system.combatAptitudes.toughness.trait "finesse")}}selected{{/if}}>Finesse</option>
+            <option value="resolve" {{#if (eq system.combatAptitudes.toughness.trait "resolve")}}selected{{/if}}>Resolve</option>
+            <option value="panache" {{#if (eq system.combatAptitudes.toughness.trait "panache")}}selected{{/if}}>Panache</option>
+            <option value="wits"    {{#if (eq system.combatAptitudes.toughness.trait "wits")}}selected{{/if}}>Wits</option>
+          </select>
+        </td>
+        <td class="col-value"><span class="apt-value">{{system.combatAptitudes.toughness.value}}</span></td>
+        <td class="col-roll"></td>
+      </tr>
+
+      <tr>
+        <td class="apt-label">Manoeuvre</td>
+        <td>
+          <select name="system.combatAptitudes.manoeuvre.trait" {{#unless isEditable}}disabled{{/unless}}>
+            <option value="">— choose —</option>
+            <option value="brawn"   {{#if (eq system.combatAptitudes.manoeuvre.trait "brawn")}}selected{{/if}}>Brawn</option>
+            <option value="finesse" {{#if (eq system.combatAptitudes.manoeuvre.trait "finesse")}}selected{{/if}}>Finesse</option>
+            <option value="resolve" {{#if (eq system.combatAptitudes.manoeuvre.trait "resolve")}}selected{{/if}}>Resolve</option>
+            <option value="panache" {{#if (eq system.combatAptitudes.manoeuvre.trait "panache")}}selected{{/if}}>Panache</option>
+            <option value="wits"    {{#if (eq system.combatAptitudes.manoeuvre.trait "wits")}}selected{{/if}}>Wits</option>
+          </select>
+        </td>
+        <td class="col-value"><span class="apt-value">{{system.combatAptitudes.manoeuvre.value}}</span></td>
+        <td class="col-roll"></td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  {{/if}}
+
+</div>

@@ -61,6 +61,36 @@
         {{/each}}
       </div>
 
+      {{#if s.arcanaEntries.length}}
+      <div class="arcana-items">
+        {{#each s.arcanaEntries as |a|}}
+        <div class="arcana-item-block">
+          <div class="arcana-item-name">{{a.name}}</div>
+
+          <div class="arcana-item-row">
+            <button type="button"
+                    class="sorte-btn sorte-minor js-arcana-action"
+                    data-item-id="{{a.id}}"
+                    data-arcana-tier="minor">
+              ◈ Minor
+            </button>
+            <span class="arcana-item-desc">{{a.minorDesc}}</span>
+          </div>
+
+          <div class="arcana-item-row">
+            <button type="button"
+                    class="sorte-btn sorte-major js-arcana-action"
+                    data-item-id="{{a.id}}"
+                    data-arcana-tier="major">
+              ★ Major
+            </button>
+            <span class="arcana-item-desc">{{a.majorDesc}}</span>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+
     </div>
     {{/each}}
   {{else}}

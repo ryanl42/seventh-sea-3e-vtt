@@ -24,6 +24,7 @@ export const TRADITIONS = {
     resourceLabel: "Backlash",
     resourceMax:   null,          // Backlash has no hard cap
     description:   "Fate magic wielded by Vodacce women. Reading is free; Weaving costs Hero Points or Backlash. Each Backlash removes 1 die from all rolls and can only be cleared by taking Wounds.",
+    // Tradition-level actions, shown once on the Sorte item itself.
     actions: {
       // key → { label, fn, hint }
       read: {
@@ -31,21 +32,19 @@ export const TRADITIONS = {
         hint:  "Wits + Sorcery — free, reveals links & Arcana",
         fn:    Sorte.sorteRead,
       },
-      weaveMinor: {
-        label: "◈ Minor Arcana",
-        hint:  "Costs 1 Hero Point or 1 Backlash",
-        fn:    Sorte.sorteWeaveMinor,
-      },
-      weaveMajor: {
-        label: "★ Major Arcana",
-        hint:  "Always costs 1 Backlash",
-        fn:    Sorte.sorteWeaveMajor,
-      },
       reference: {
         label: "📖 Arcana Reference",
         hint:  "Post all Arcana effects to chat",
         fn:    Sorte.sorteReference,
       },
+    },
+    // The 8 Arcana for this tradition — each becomes its own Item,
+    // attached to the Sorte item via system.parentSorceryId.
+    arcana: Sorte.ARCANA,
+    // Generic per-Arcana Weave actions, shared across every Arcana entry.
+    arcanaActions: {
+      weaveMinor: Sorte.weaveArcanaMinor,
+      weaveMajor: Sorte.weaveArcanaMajor,
     },
   },
 
@@ -80,4 +79,40 @@ export function getTradition(id) {
  */
 export function traditionChoices() {
   return Object.entries(TRADITIONS).map(([id, t]) => ({ id, label: t.label }));
+}
+
+/**
+ * The full Arcana list for a tradition (name/minor/major/targeting/effect fns).
+ */
+export function getArcanaList(traditionId) {
+  return TRADITIONS[traditionId]?.arcana ?? [];
+}
+
+/**
+ * A single Arcana's definition within a tradition, by key.
+ */
+export function getArcanaDef(traditionId, key) {
+  return getArcanaList(traditionId).find(a => a.key === key) ?? null;
+}
+
+/**
+ * Creates one Arcana Item per entry in a tradition's Arcana list, each
+ * flagged with the parent Sorcery item's id. Called once when a tradition
+ * is first added to an actor.
+ */
+export async function createArcanaItemsForTradition(actor, sorceryItem) {
+  const list = getArcanaList(sorceryItem.system.tradition);
+  if (!list.length) return [];
+
+  const data = list.map(def => ({
+    name:   def.name,
+    type:   "arcana",
+    system: {
+      tradition:       sorceryItem.system.tradition,
+      key:             def.key,
+      parentSorceryId: sorceryItem.id,
+    },
+  }));
+
+  return actor.createEmbeddedDocuments("Item", data);
 }

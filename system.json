@@ -37,6 +37,9 @@
       },
       "sorcery": {
         "label": "ITEM.TypeSorcery"
+      },
+      "arcana": {
+        "label": "ITEM.TypeArcana"
       }
     }
   },

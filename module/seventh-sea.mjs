@@ -9,6 +9,7 @@ import { SeventhSeaActor } from "./actor/actor.mjs";
 import { registerBruteSquadTokenSizeHooks } from "./actor/brute-token-size.mjs";
 import { AdvantageData }  from "./item/advantage-data.mjs";
 import { SorceryData }    from "./item/sorcery-data.mjs";
+import { ArcanaData }     from "./item/arcana-data.mjs";
 import { HeroSheet }      from "./apps/hero-sheet.mjs";
 import { NPCSheet }       from "./apps/npc-sheet.mjs";
 import { AdvantageSheet } from "./apps/advantage-sheet.mjs";
@@ -31,7 +32,7 @@ Hooks.once("init", () => {
 
   // ── Data models ──────────────────────────────────────────────────────────
   CONFIG.Actor.dataModels = { hero: HeroData, npc: NpcData };
-  CONFIG.Item.dataModels  = { advantage: AdvantageData, sorcery: SorceryData };
+  CONFIG.Item.dataModels  = { advantage: AdvantageData, sorcery: SorceryData, arcana: ArcanaData };
 
   // ── Token bar attributes ─────────────────────────────────────────────────
   // Paths are relative to actor.system. Bar paths need {value,max} objects.
@@ -68,6 +69,7 @@ Hooks.once("init", () => {
   registerBruteSquadTokenSizeHooks();
   registerExtendedActionSetting();
   registerColorThemeSetting();
+  registerSorteReadResetHook();
   game.settings.register("seventh-sea-3e", "migratedWoundMinorPerSegment", {
     scope: "world", config: false, type: Boolean, default: false,
   });
@@ -148,6 +150,24 @@ function registerColorThemeSetting() {
 
 function applyColorTheme(value) {
   document.body.dataset.ssTheme = value;
+}
+
+// ── Sorte Strega — clear "Read this scene" flags when Combat ends ─────────────
+// Weaving an Arcana requires a prior Reading of the target during the same
+// scene (Quick Reference, p.50). The system has no explicit scene object, so
+// combat ending is used as the closest available proxy: Readings taken during
+// a Dramatic Scene persist until the next Action Scene concludes.
+function registerSorteReadResetHook() {
+  Hooks.on("deleteCombat", async () => {
+    if (!game.user.isGM) return;
+    for (const actor of game.actors) {
+      for (const item of actor.items) {
+        if (item.type === "sorcery" && item.getFlag("seventh-sea-3e", "readTargets")?.length) {
+          await item.unsetFlag("seventh-sea-3e", "readTargets");
+        }
+      }
+    }
+  });
 }
 
 // ── Dramatic Wound dice — "Helpless" resolves at the start of the next turn ───

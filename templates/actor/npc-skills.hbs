@@ -1,0 +1,213 @@
+<div class="npc-conditional-part">
+{{#unless (eq system.npcType "brute")}}
+<div class="tab-panel" data-tab="skills">
+{{!-- Skills Panel --}}
+<div class="skills-panel">
+  <div class="section-heading">
+    Skills
+    <span class="section-sub">◈ = Specialty &nbsp;|&nbsp; click name to roll (Trait+Skill vs D2)</span>
+  </div>
+
+  <div class="skills-domains">
+
+    <div class="skill-domain">
+      <h3>Cunning</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.investigation.specialty" title="Specialty"
+               {{#if system.skills.investigation.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="investigation" data-trait="wits" data-label="Investigation">Investigation</span>
+        <input type="number" name="system.skills.investigation.value"
+               value="{{system.skills.investigation.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.stealth.specialty" title="Specialty"
+               {{#if system.skills.stealth.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="stealth" data-trait="finesse" data-label="Stealth">Stealth</span>
+        <input type="number" name="system.skills.stealth.value"
+               value="{{system.skills.stealth.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.theft.specialty" title="Specialty"
+               {{#if system.skills.theft.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="theft" data-trait="finesse" data-label="Theft">Theft</span>
+        <input type="number" name="system.skills.theft.value"
+               value="{{system.skills.theft.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="skill-domain">
+      <h3>Extraordinary</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.legends.specialty" title="Specialty"
+               {{#if system.skills.legends.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="legends" data-trait="wits" data-label="Legends">Legends</span>
+        <input type="number" name="system.skills.legends.value"
+               value="{{system.skills.legends.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.sorcery.specialty" title="Specialty"
+               {{#if system.skills.sorcery.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="sorcery" data-trait="resolve" data-label="Sorcery">Sorcery</span>
+        <input type="number" name="system.skills.sorcery.value"
+               value="{{system.skills.sorcery.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.theology.specialty" title="Specialty"
+               {{#if system.skills.theology.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="theology" data-trait="wits" data-label="Theology">Theology</span>
+        <input type="number" name="system.skills.theology.value"
+               value="{{system.skills.theology.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="skill-domain">
+      <h3>Martial</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.aim.specialty" title="Specialty"
+               {{#if system.skills.aim.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="aim" data-trait="finesse" data-label="Aim">Aim</span>
+        <input type="number" name="system.skills.aim.value"
+               value="{{system.skills.aim.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.athletics.specialty" title="Specialty"
+               {{#if system.skills.athletics.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="athletics" data-trait="brawn" data-label="Athletics">Athletics</span>
+        <input type="number" name="system.skills.athletics.value"
+               value="{{system.skills.athletics.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.melee.specialty" title="Specialty"
+               {{#if system.skills.melee.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="melee" data-trait="finesse" data-label="Melee">Melee</span>
+        <input type="number" name="system.skills.melee.value"
+               value="{{system.skills.melee.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="skill-domain">
+      <h3>Military</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.sailing.specialty" title="Specialty"
+               {{#if system.skills.sailing.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="sailing" data-trait="wits" data-label="Sailing">Sailing</span>
+        <input type="number" name="system.skills.sailing.value"
+               value="{{system.skills.sailing.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.strategy.specialty" title="Specialty"
+               {{#if system.skills.strategy.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="strategy" data-trait="wits" data-label="Strategy">Strategy</span>
+        <input type="number" name="system.skills.strategy.value"
+               value="{{system.skills.strategy.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.survival.specialty" title="Specialty"
+               {{#if system.skills.survival.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="survival" data-trait="resolve" data-label="Survival">Survival</span>
+        <input type="number" name="system.skills.survival.value"
+               value="{{system.skills.survival.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="skill-domain">
+      <h3>Politics</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.intrigue.specialty" title="Specialty"
+               {{#if system.skills.intrigue.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="intrigue" data-trait="wits" data-label="Intrigue">Intrigue</span>
+        <input type="number" name="system.skills.intrigue.value"
+               value="{{system.skills.intrigue.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.protocol.specialty" title="Specialty"
+               {{#if system.skills.protocol.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="protocol" data-trait="panache" data-label="Protocol">Protocol</span>
+        <input type="number" name="system.skills.protocol.value"
+               value="{{system.skills.protocol.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.selfControl.specialty" title="Specialty"
+               {{#if system.skills.selfControl.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="selfControl" data-trait="resolve" data-label="Self-Control">Self-Control</span>
+        <input type="number" name="system.skills.selfControl.value"
+               value="{{system.skills.selfControl.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="skill-domain">
+      <h3>Scholarship</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.engineering.specialty" title="Specialty"
+               {{#if system.skills.engineering.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="engineering" data-trait="wits" data-label="Engineering">Engineering</span>
+        <input type="number" name="system.skills.engineering.value"
+               value="{{system.skills.engineering.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.humanities.specialty" title="Specialty"
+               {{#if system.skills.humanities.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="humanities" data-trait="wits" data-label="Humanities">Humanities</span>
+        <input type="number" name="system.skills.humanities.value"
+               value="{{system.skills.humanities.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.science.specialty" title="Specialty"
+               {{#if system.skills.science.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="science" data-trait="wits" data-label="Science">Science</span>
+        <input type="number" name="system.skills.science.value"
+               value="{{system.skills.science.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="skill-domain">
+      <h3>Social</h3>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.empathy.specialty" title="Specialty"
+               {{#if system.skills.empathy.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="empathy" data-trait="wits" data-label="Empathy">Empathy</span>
+        <input type="number" name="system.skills.empathy.value"
+               value="{{system.skills.empathy.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.persuasion.specialty" title="Specialty"
+               {{#if system.skills.persuasion.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="persuasion" data-trait="panache" data-label="Persuasion">Persuasion</span>
+        <input type="number" name="system.skills.persuasion.value"
+               value="{{system.skills.persuasion.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+      <div class="skill-row">
+        <input type="checkbox" name="system.skills.perform.specialty" title="Specialty"
+               {{#if system.skills.perform.specialty}}checked{{/if}} {{#unless isEditable}}disabled{{/unless}} />
+        <span class="skill-name rollable" data-action="rollSkill"
+              data-skill="perform" data-trait="panache" data-label="Perform">Perform</span>
+        <input type="number" name="system.skills.perform.value"
+               value="{{system.skills.perform.value}}" min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+{{/unless}}
+</div>

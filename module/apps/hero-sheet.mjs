@@ -6,9 +6,10 @@
  */
 
 import { SeventhSeaDice } from "../dice/dice.mjs";
-import { getTradition }   from "../sorcery/traditions.mjs";
+import { getTradition, getArcanaDef, createArcanaItemsForTradition } from "../sorcery/traditions.mjs";
 import { postVillainPointDamagePrompt } from "../combat/vp-chat.mjs";
 import { computeWoundTrack } from "../combat/wound-track.mjs";
+import { aptitudeValue, firstTargetActor } from "../actor/aptitude-utils.mjs";
 
 const { ActorSheetV2 }               = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -66,6 +67,19 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .filter(i => i.type === "sorcery")
       .map(item => {
         const tradition = getTradition(item.system.tradition);
+
+        const arcanaEntries = this.document.items
+          .filter(i => i.type === "arcana" && i.system.parentSorceryId === item.id)
+          .map(a => {
+            const def = getArcanaDef(a.system.tradition, a.system.key);
+            return {
+              id:        a.id,
+              name:      def?.name ?? a.name,
+              minorDesc: def?.minor ?? "",
+              majorDesc: def?.major ?? "",
+            };
+          });
+
         return {
           id:             item.id,
           traditionLabel: tradition?.label ?? item.system.tradition,
@@ -79,6 +93,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
                 itemId: item.id,   // carried into each action so template can access it
               }))
             : [],
+          arcanaEntries,
         };
       });
 
@@ -99,6 +114,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this._applyTab();
     this._applyExpandedAdvantages();
     this._bindSorceryButtons();
+    this._bindArcanaButtons();
   }
 
   _applyTab() {
@@ -155,6 +171,35 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  // Bind each Arcana entry's own Minor/Major Weave buttons.
+  _bindArcanaButtons() {
+    const el = this.element;
+    if (!el) return;
+
+    el.querySelectorAll(".js-arcana-action").forEach(btn => {
+      const fresh = btn.cloneNode(true);
+      btn.replaceWith(fresh);
+
+      fresh.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const itemId = fresh.dataset.itemId;
+        const tier   = fresh.dataset.arcanaTier; // "minor" | "major"
+        const item   = this.document.items.get(itemId);
+        if (!item) { console.warn("7thSea3e | Arcana item not found:", itemId); return; }
+
+        const tradition = getTradition(item.system.tradition);
+        const fn = tier === "minor"
+          ? tradition?.arcanaActions?.weaveMinor
+          : tradition?.arcanaActions?.weaveMajor;
+        if (!fn) { console.warn("7thSea3e | No arcana weave fn for tier:", tier); return; }
+
+        await fn(this.document, item);
+      });
+    });
+  }
+
   // ── Tab ────────────────────────────────────────────────────────────────────
 
   static _onSwitchTab(event, target) {
@@ -198,8 +243,8 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async _onRollAttack() {
     const apt    = this.document.system.combatAptitudes.attack;
-    const target = _getFirstTarget();
-    const diff   = _aptitudeValue(target, "defence") ?? 2;
+    const target = firstTargetActor();
+    const diff   = aptitudeValue(target, "defence") ?? 2;
     const diffLabel = target
       ? ` vs ${target.name} (Defence ${diff})`
       : "";
@@ -219,8 +264,8 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async _onRollDefence() {
     const apt    = this.document.system.combatAptitudes.defence;
-    const target = _getFirstTarget();
-    const diff   = _aptitudeValue(target, "attack") ?? 2;
+    const target = firstTargetActor();
+    const diff   = aptitudeValue(target, "attack") ?? 2;
     const diffLabel = target
       ? ` vs ${target.name} (Attack ${diff})`
       : "";
@@ -240,7 +285,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const attacker = target?.type === "npc" ? target : _fallbackAttacker();
 
       if (attacker) {
-        const baseDamage = attacker.system.combatAptitudes.damage ?? 0;
+        const baseDamage = aptitudeValue(attacker, "damage") ?? 0;
         if (baseDamage > 0) {
           await this._applyDefenceDamage(baseDamage, attacker);
         } else {
@@ -340,11 +385,11 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ── Sorcery ────────────────────────────────────────────────────────────────
 
   static async _onCreateSorcery() {
-    await Item.create(
-      { name: "Sorte Strega", type: "sorcery",
-        system: { tradition: "sorte", resource: { label: "Backlash", value: 0 } } },
-      { parent: this.document }
-    );
+    const [sorceryItem] = await this.document.createEmbeddedDocuments("Item", [{
+      name: "Sorte Strega", type: "sorcery",
+      system: { tradition: "sorte", resource: { label: "Backlash", value: 0 } },
+    }]);
+    await createArcanaItemsForTradition(this.document, sorceryItem);
   }
 
   static async _onEditSorcery(event, target) {
@@ -356,9 +401,16 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!item) return;
     const confirmed = await Dialog.confirm({
       title:   "Remove Tradition",
-      content: `<p>Remove <strong>${item.name}</strong>?</p>`,
+      content: `<p>Remove <strong>${item.name}</strong> and all of its Arcana?</p>`,
     });
-    if (confirmed) await item.delete();
+    if (!confirmed) return;
+
+    const arcanaIds = this.document.items
+      .filter(i => i.type === "arcana" && i.system.parentSorceryId === item.id)
+      .map(i => i.id);
+
+    await item.delete();
+    if (arcanaIds.length) await this.document.deleteEmbeddedDocuments("Item", arcanaIds);
   }
 
   // ── Apply wounds from a failed Defence roll ────────────────────────────────
@@ -450,15 +502,6 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 // ── Module-level helper ────────────────────────────────────────────────────────
 /**
- * Returns the Actor of the first targeted token, or null if nothing is targeted.
- * Used to auto-populate Difficulty from the target's opposing aptitude.
- */
-function _getFirstTarget() {
-  const target = game.user.targets.first();
-  return target?.actor ?? null;
-}
-
-/**
  * Falls back to whichever NPC is the current Combatant in the active Combat
  * (the likely attacker on a Defence roll) when no token is targeted, so a
  * forgotten target doesn't silently skip applying Wounds.
@@ -466,18 +509,4 @@ function _getFirstTarget() {
 function _fallbackAttacker() {
   const combatantActor = game.combat?.combatant?.actor;
   return combatantActor?.type === "npc" ? combatantActor : null;
-}
-
-/**
- * Reads a combat aptitude value from either a Hero actor (object with .value)
- * or an NPC actor (flat number), returning a clean integer.
- */
-function _aptitudeValue(actor, aptitudeKey) {
-  if (!actor) return null;
-  const apt = actor.system?.combatAptitudes?.[aptitudeKey];
-  if (apt === undefined || apt === null) return null;
-  // Hero: { trait: "finesse", value: 3 } — NPC: flat number
-  if (typeof apt === "object") return apt.value ?? null;
-  if (typeof apt === "number") return apt;
-  return null;
 }

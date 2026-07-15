@@ -5,6 +5,7 @@
   },
   "ITEM": {
     "TypeAdvantage": "Advantage",
-    "TypeSorcery": "Sorcery Tradition"
+    "TypeSorcery": "Sorcery Tradition",
+    "TypeArcana": "Arcana"
   }
 }
