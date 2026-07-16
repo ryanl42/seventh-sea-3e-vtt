@@ -53,8 +53,8 @@
     }
   ],
   "socket": false,
-  "url": "",
-  "manifest": "",
+  "url": "https://github.com/ryanl42/seventh-sea-3e-vtt/",
+  "manifest": "https://raw.githubusercontent.com/ryanl42/seventh-sea-3e-vtt/refs/heads/main/system.json",
   "download": "",
   "styles": [
     "styles/seventh-sea.css"
