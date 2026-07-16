@@ -55,7 +55,7 @@
   "socket": false,
   "url": "https://github.com/ryanl42/seventh-sea-3e-vtt/",
   "manifest": "https://raw.githubusercontent.com/ryanl42/seventh-sea-3e-vtt/refs/heads/main/system.json",
-  "download": "",
+  "download": "https://github.com/ryanl42/seventh-sea-3e-vtt/archive/refs/heads/main.zip",
   "styles": [
     "styles/seventh-sea.css"
   ],
