@@ -1384,3 +1384,39 @@ body[data-ss-theme="classic"] {
 
 /* Extended Action contribution note in chat */
 .chat-roll-footer.ea-progress { color: var(--ss-hud-accent); font-weight: bold; font-style: normal; }
+
+/* ── Advantage automation (dice dialogs, panel, item sheet) ──────────────── */
+
+.dialog-advantages { margin-top: 6px; }
+.dialog-advantage-row {
+  display: block; font-size: 0.85em; margin: 2px 0;
+  cursor: pointer;
+}
+.dialog-advantage-row input[type="checkbox"] { margin-right: 4px; }
+
+.chat-roll-footer.advantage-note { color: #6b3fa0; font-weight: bold; font-style: normal; }
+
+.adv-panel-buttons { display: flex; gap: 6px; }
+.help-ally-btn, .reset-advantage-uses-btn, .adv-activate-btn {
+  font-size: 0.8em; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--ss-hud-accent, #7a5230); background: #fff8ec;
+}
+.help-ally-btn:hover, .reset-advantage-uses-btn:hover, .adv-activate-btn:hover { background: #f0e0c0; }
+.adv-clear-btn { margin-left: 4px; opacity: 0.8; }
+
+.adv-auto-badge, .adv-uses-badge {
+  font-size: 0.7em; padding: 1px 5px; border-radius: 8px;
+  background: #eee3cf; color: #5a4326; margin-left: 6px;
+}
+
+.adv-automation { margin-top: 6px; padding-top: 4px; border-top: 1px dashed #cbb994; }
+.adv-automation-note { font-size: 0.8em; font-style: italic; margin: 2px 0 6px; }
+.adv-automation-note.adv-manual { color: #8a7a5c; }
+.adv-oath-note { font-size: 0.8em; margin-top: 4px; }
+
+.adv-automation-fields {
+  margin-top: 10px; padding: 6px 10px; border: 1px solid #cbb994; border-radius: 4px;
+}
+.adv-automation-fields legend { font-weight: bold; padding: 0 4px; }
+.adv-skill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px 8px; }
+.adv-skill-check { font-size: 0.85em; display: flex; align-items: center; gap: 4px; }

@@ -6,7 +6,11 @@
 
 import { adjustVP } from "../settings/villainy.mjs";
 import { getExtendedActions, addExtendedActionProgress } from "../settings/extended-action.mjs";
- 
+import {
+  eligibleRollAdvantages, renderAdvantageChoices, readAdvantageChoices, commitAdvantageChoices,
+  consumeAssistBonus, consumeBladeTrap, consumeFortunateReady, markAdvantageUsed, findAvailableAdvantage,
+} from "../advantages/advantage-engine.mjs";
+
 const HIT_THRESHOLDS = [10, 9, 8, 7, 6, 5];
 
 const SKILL_LABELS = {
@@ -35,28 +39,42 @@ export class SeventhSeaDice {
       ?.filter(i => i.type === "sorcery")
       ?.reduce((sum, i) => sum + (i.system.resource.value ?? 0), 0) ?? 0;
     const extendedActions = getExtendedActions();
+    const advList        = eligibleRollAdvantages(actor, { skillKey, traitKey: defaultTrait });
+    const fortunateReady  = !!actor?.getFlag?.("seventh-sea-3e", "fortunateReady");
+    const forceFateFreeReady = !!findAvailableAdvantage(actor, "sorte-strega-force-fate");
 
     const dialogResult = await SeventhSeaDice._showSkillDialog({
       label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedActions,
+      advList, fortunateReady, forceFateFreeReady,
     });
     if (dialogResult === null) return null;
 
-    const { finalDifficulty, extraDice, forceFate, chosenTrait, extendedActionId } = dialogResult;
+    const {
+      finalDifficulty, extraDice, forceFate, chosenTrait, extendedActionId,
+      advSelections = [], fortunateReroll = false, forceFateFreeRequested = false,
+    } = dialogResult;
 
     const traitVal  = traits[chosenTrait]?.value ?? 0;
     const skillVal  = system?.skills?.[skillKey]?.value ?? skillRank;
     const rawPool   = traitVal + skillVal - backlash;
-    const finalPool = Math.max(1, rawPool + extraDice);
 
-    if (extraDice > 0 && actor) {
-      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
+    const { bonusDice: advBonus, hpCost: advHpCost, footerLines: advFooterLines } =
+      await commitAdvantageChoices(actor, advSelections);
+    const assist = await consumeAssistBonus(actor);
+    if (assist) advFooterLines.push(`Helping Hand from ${assist.from} (+${assist.dice})`);
+
+    const finalPool = Math.max(1, rawPool + extraDice + advBonus + (assist?.dice ?? 0));
+
+    const totalHpSpend = extraDice + advHpCost;
+    if (totalHpSpend > 0 && actor) {
+      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - totalHpSpend) });
     }
 
     return SeventhSeaDice._resolveRoll({
       actor, label: `${label} [${chosenTrait}]`,
       finalPool, skillRank, specialty, finalDifficulty,
       extraDice, forceFate, includeDramaticWounds: false,
-      extendedActionId,
+      extendedActionId, advFooterLines, fortunateReroll, forceFateFreeRequested,
     });
   }
 
@@ -72,34 +90,54 @@ export class SeventhSeaDice {
     const backlash   = actor?.items
       ?.filter(i => i.type === "sorcery")
       ?.reduce((sum, i) => sum + (i.system.resource.value ?? 0), 0) ?? 0;
+    const advList        = eligibleRollAdvantages(actor, { skillKeys: skillChoices, traitKey: aptitudeTrait });
+    const fortunateReady = !!actor?.getFlag?.("seventh-sea-3e", "fortunateReady");
+    const forceFateFreeReady = !!findAvailableAdvantage(actor, "sorte-strega-force-fate");
+    const bladeTrapPenalty = await consumeBladeTrap(actor);
 
     const dialogResult = await SeventhSeaDice._showCombatDialog({
       label, difficulty, heroPoints, traits, aptitudeTrait, skillChoices, backlash, system,
+      advList, fortunateReady, forceFateFreeReady, bladeTrapPenalty,
     });
     if (dialogResult === null) return null;
 
-    const { finalDifficulty, extraDice, forceFate, chosenTrait, chosenSkill } = dialogResult;
+    const {
+      finalDifficulty, extraDice, forceFate, chosenTrait, chosenSkill,
+      advSelections = [], fortunateReroll = false, forceFateFreeRequested = false,
+    } = dialogResult;
 
     const traitVal   = traits[chosenTrait]?.value ?? 0;
     const skillVal   = system?.skills?.[chosenSkill]?.value ?? 0;
     const specialty  = system?.skills?.[chosenSkill]?.specialty ?? false;
     const rawPool    = traitVal + skillVal - backlash;
-    const finalPool  = Math.max(1, rawPool + extraDice);
 
-    if (extraDice > 0 && actor) {
-      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
+    const { bonusDice: advBonus, hpCost: advHpCost, footerLines: advFooterLines } =
+      await commitAdvantageChoices(actor, advSelections);
+    const assist = await consumeAssistBonus(actor);
+    if (assist) advFooterLines.push(`Helping Hand from ${assist.from} (+${assist.dice})`);
+    if (bladeTrapPenalty > 0) advFooterLines.push(`Blade trapped (Duelist Academy): −${bladeTrapPenalty} die`);
+
+    const finalPool = Math.max(1, rawPool + extraDice + advBonus + (assist?.dice ?? 0) - bladeTrapPenalty);
+
+    const totalHpSpend = extraDice + advHpCost;
+    if (totalHpSpend > 0 && actor) {
+      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - totalHpSpend) });
     }
 
     return SeventhSeaDice._resolveRoll({
       actor, label: `${label} [${chosenTrait} + ${chosenSkill}]`,
       finalPool, skillRank: skillVal, specialty, finalDifficulty,
       extraDice, forceFate, includeDramaticWounds: true,
+      advFooterLines, fortunateReroll, forceFateFreeRequested,
     });
   }
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
 
-  static _showSkillDialog({ label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash, extendedActions = [] }) {
+  static _showSkillDialog({
+    label, skillRank, specialty, difficulty, heroPoints, traits, defaultTrait, backlash,
+    extendedActions = [], advList = [], fortunateReady = false, forceFateFreeReady = false,
+  }) {
     const threshold   = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeNote = specialty ? "Specialty: explode on 9–10" : "Explode on 10";
 
@@ -118,6 +156,12 @@ export class SeventhSeaDice {
                 ${eaOptions}
               </select>
               <p class="dialog-hint">Hits beyond Difficulty count toward the chosen Goal instead of granting Hero Points.</p>
+            </div>` : "";
+
+    const advField = renderAdvantageChoices(advList);
+    const fortunateField = fortunateReady ? `
+            <div class="dialog-field">
+              <label><input id="ss-fortunate" type="checkbox" /> Fortunate: reroll non-hit dice (once)</label>
             </div>` : "";
 
     return new Promise(resolve => {
@@ -149,7 +193,11 @@ export class SeventhSeaDice {
               <label>Force Fate</label>
               <input id="ss-force-fate" type="checkbox" />
               <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
+              ${forceFateFreeReady ? `
+              <label><input id="ss-force-fate-free" type="checkbox" /> Sorte Strega: no VP for this Force Fate (once/session)</label>` : ""}
             </div>
+            ${advField}
+            ${fortunateField}
             ${eaField}
           </div>`,
         buttons: {
@@ -160,7 +208,10 @@ export class SeventhSeaDice {
               finalDifficulty: parseInt(html.find("#ss-difficulty").val()) || difficulty,
               extraDice:      Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
               forceFate:      html.find("#ss-force-fate").is(":checked"),
-              extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null, 
+              extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null,
+              advSelections:  readAdvantageChoices(html, advList),
+              fortunateReroll: html.find("#ss-fortunate").is(":checked"),
+              forceFateFreeRequested: html.find("#ss-force-fate-free").is(":checked"),
             }),
           },
           cancel: { label: "Cancel", callback: () => resolve(null) },
@@ -170,7 +221,10 @@ export class SeventhSeaDice {
     });
   }
 
-  static _showCombatDialog({ label, difficulty, heroPoints, traits, aptitudeTrait, skillChoices, backlash, system }) {
+  static _showCombatDialog({
+    label, difficulty, heroPoints, traits, aptitudeTrait, skillChoices, backlash, system,
+    advList = [], fortunateReady = false, forceFateFreeReady = false, bladeTrapPenalty = 0,
+  }) {
     const traitOptions = Object.entries(traits).map(([key, t]) =>
       `<option value="${key}" ${key === aptitudeTrait ? "selected" : ""}>${_cap(key)} (${t.value})</option>`
     ).join("");
@@ -186,12 +240,21 @@ export class SeventhSeaDice {
       ? `<p class="dialog-hint" style="color:#1a3a6b;">Auto-set from target aptitude. Change if needed.</p>`
       : `<p class="dialog-hint">Set to opponent's opposing aptitude value.</p>`;
 
+    const advField = renderAdvantageChoices(advList);
+    const fortunateField = fortunateReady ? `
+            <div class="dialog-field">
+              <label><input id="ss-fortunate" type="checkbox" /> Fortunate: reroll non-hit dice (once)</label>
+            </div>` : "";
+    const bladeTrapNote = bladeTrapPenalty > 0
+      ? `<div class="dialog-pool-info"><span class="dialog-backlash-note">Blade trapped (Duelist Academy): −${bladeTrapPenalty} die</span></div>` : "";
+
     return new Promise(resolve => {
       new Dialog({
         title: `Roll: ${label}`,
         content: `
           <div class="ss-roll-dialog">
             ${backlash > 0 ? `<div class="dialog-pool-info"><span class="dialog-backlash-note">−${backlash} Backlash on pool</span></div><hr/>` : ""}
+            ${bladeTrapNote}
             <div class="dialog-field">
               <label>Trait</label>
               <select id="ss-trait">${traitOptions}</select>
@@ -214,7 +277,11 @@ export class SeventhSeaDice {
               <label>Force Fate</label>
               <input id="ss-force-fate" type="checkbox" />
               <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
+              ${forceFateFreeReady ? `
+              <label><input id="ss-force-fate-free" type="checkbox" /> Sorte Strega: no VP for this Force Fate (once/session)</label>` : ""}
             </div>
+            ${advField}
+            ${fortunateField}
           </div>`,
         buttons: {
           roll: {
@@ -225,6 +292,9 @@ export class SeventhSeaDice {
               finalDifficulty: parseInt(html.find("#ss-difficulty").val()) || difficulty,
               extraDice:       Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
               forceFate:       html.find("#ss-force-fate").is(":checked"),
+              advSelections:   readAdvantageChoices(html, advList),
+              fortunateReroll: html.find("#ss-fortunate").is(":checked"),
+              forceFateFreeRequested: html.find("#ss-force-fate-free").is(":checked"),
             }),
           },
           cancel: { label: "Cancel", callback: () => resolve(null) },
@@ -239,6 +309,7 @@ export class SeventhSeaDice {
   static async _resolveRoll({
     actor, label, finalPool, skillRank, specialty, finalDifficulty, extraDice, forceFate,
     includeDramaticWounds = false, extendedActionId = null,
+    advFooterLines = [], fortunateReroll = false, forceFateFreeRequested = false,
   }) {
     const threshold = HIT_THRESHOLDS[Math.clamp(skillRank, 0, 5)];
     const explodeOn = specialty ? 9 : 10;
@@ -251,6 +322,26 @@ export class SeventhSeaDice {
       const faces = r.dice[0].results.map(res => res.result);
       allFaces.push(...faces);
       pending = faces.filter(f => f >= explodeOn).length;
+    }
+
+    /* ── Fortunate (Advantage): reroll all non-hit dice, once ─────────────── */
+    let fortunateApplied = false;
+    if (fortunateReroll) {
+      const usedFortunate = await consumeFortunateReady(actor);
+      if (usedFortunate) {
+        const rerollCount = allFaces.filter(f => f < threshold).length;
+        if (rerollCount > 0) {
+          const r = new Roll(`${rerollCount}d10`);
+          await r.evaluate();
+          const newFaces = r.dice[0].results.map(res => res.result);
+          let i = 0;
+          for (let idx = 0; idx < allFaces.length; idx++) {
+            if (allFaces[idx] < threshold) allFaces[idx] = newFaces[i++];
+          }
+        }
+        fortunateApplied = true;
+        advFooterLines = [...advFooterLines, "Fortunate: rerolled non-hit dice"];
+      }
     }
 
     /* ── Dramatic Wound dice (Attack/Defence rolls only) ─────────────────────
@@ -285,11 +376,24 @@ export class SeventhSeaDice {
     let forced      = false;
 
     if (!success && forceFate) {
-      vpGained = finalDifficulty - hits;
-      await adjustVP(vpGained);
+      const missingHits = finalDifficulty - hits;
+      forced    = true;
       success   = true;
       extraHits = 0;
-      forced    = true;
+
+      let freeForceFate = false;
+      if (forceFateFreeRequested) {
+        const advItem = findAvailableAdvantage(actor, "sorte-strega-force-fate");
+        if (advItem) {
+          await markAdvantageUsed(advItem);
+          freeForceFate = true;
+          advFooterLines = [...advFooterLines, "Sorte Strega: Force Fate without giving the GM Villainy Points"];
+        }
+      }
+      if (!freeForceFate) {
+        vpGained = missingHits;
+        await adjustVP(vpGained);
+      }
     }
 
     let hpGained = 0;
@@ -305,7 +409,7 @@ export class SeventhSeaDice {
       actor, label, allFaces, woundFaces, threshold, specialty,
       finalDifficulty, hits, success, extraHits,
       hpGained, extraDice, forced, vpGained,
-      dramaticWoundHelplessTriggered, extendedActionState,
+      dramaticWoundHelplessTriggered, extendedActionState, advFooterLines,
     });
 
     return {
@@ -320,7 +424,7 @@ export class SeventhSeaDice {
     actor, label, allFaces, woundFaces = [], threshold, specialty,
     finalDifficulty, hits, success, extraHits,
     hpGained, extraDice, forced, vpGained,
-    dramaticWoundHelplessTriggered = false, extendedActionState = null,
+    dramaticWoundHelplessTriggered = false, extendedActionState = null, advFooterLines = [],
   }) {
     const diceHtml = allFaces.map(f =>
       `<span class="die ${f >= threshold ? "hit" : ""}">${f}</span>`
@@ -335,6 +439,9 @@ export class SeventhSeaDice {
     if (hpGained > 0)  footer += `<div class="chat-roll-footer hp-gained">+${hpGained} Hero Point${hpGained > 1 ? "s" : ""} gained</div>`;
     if (forced)        footer += `<div class="chat-roll-footer force-fate">⚖ Force Fate — GM gains ${vpGained} VP</div>`;
     if (specialty)     footer += `<div class="chat-roll-footer">◈ Specialty active</div>`;
+    for (const line of advFooterLines) {
+      footer += `<div class="chat-roll-footer advantage-note">✦ ${line}</div>`;
+    }
 
     if (woundFaces.length > 0) {
       footer += `<div class="chat-roll-footer">${woundFaces.length} Dramatic Wound di${woundFaces.length > 1 ? "ce" : "e"} rolled (explode on 10)</div>`;
@@ -366,112 +473,6 @@ export class SeventhSeaDice {
           </div>
           ${footer}
         </div>`,
-    });
-  }
-
-  // ── Manoeuvre (catch-all — any Skill) ───────────────────────────────────────
-  //
-  // Manoeuvre isn't tied to one Skill — it's a general-purpose Trait used
-  // for all sorts of things during an Action Scene, paired with whichever
-  // Skill fits what the Hero is trying to do. (First Aid, below, is just one
-  // specific use of it: Manoeuvre + Science.)
-
-  static async rollManoeuvre({ actor, difficulty = 2 }) {
-    const system    = actor?.system;
-    const manoeuvre = system?.combatAptitudes?.manoeuvre;
-    if (!manoeuvre?.trait) {
-      ui.notifications.warn(`${actor?.name ?? "This character"} has no Trait linked to Manoeuvre yet — set one on the Combat tab.`);
-      return null;
-    }
-
-    const manoeuvreVal    = manoeuvre.value ?? 0;
-    const heroPoints      = system?.heroPoints ?? 0;
-    const skills          = system?.skills ?? {};
-    const extendedActions = getExtendedActions();
-
-    const dialogResult = await SeventhSeaDice._showManoeuvreDialog({
-      manoeuvreTrait: manoeuvre.trait, manoeuvreVal, skills, difficulty, heroPoints, extendedActions,
-    });
-    if (dialogResult === null) return null;
-
-    const { chosenSkill, finalDifficulty, extraDice, forceFate, extendedActionId } = dialogResult;
-    const skillEntry = skills[chosenSkill] ?? { value: 0, specialty: false };
-    const finalPool  = Math.max(1, manoeuvreVal + skillEntry.value + extraDice);
-
-    if (extraDice > 0 && actor) {
-      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
-    }
-
-    return SeventhSeaDice._resolveRoll({
-      actor, label: `Manoeuvre [${_cap(manoeuvre.trait)}] + ${_cap(chosenSkill)}`,
-      finalPool, skillRank: skillEntry.value, specialty: skillEntry.specialty, finalDifficulty,
-      extraDice, forceFate, includeDramaticWounds: false, extendedActionId,
-    });
-  }
-
-  static _showManoeuvreDialog({ manoeuvreTrait, manoeuvreVal, skills, difficulty, heroPoints, extendedActions = [] }) {
-    const skillOptions = Object.entries(skills).map(([key, s]) =>
-      `<option value="${key}">${_cap(key)} (${s.value})</option>`
-    ).join("");
-
-    const eaOptions = extendedActions.map(a =>
-      `<option value="${a.id}">${a.label ? _cap(a.label) : "Extended Action"} (${a.current}/${a.target})</option>`
-    ).join("");
-    const eaField = extendedActions.length > 0 ? `
-            <div class="dialog-field">
-              <label>Contribute to</label>
-              <select id="ss-contribute-ea">
-                <option value="">— None (Hero Points as normal) —</option>
-                ${eaOptions}
-              </select>
-              <p class="dialog-hint">Hits beyond Difficulty count toward the chosen Goal instead of granting Hero Points.</p>
-            </div>` : "";
-
-    return new Promise(resolve => {
-      new Dialog({
-        title: "Roll Manoeuvre",
-        content: `
-          <div class="ss-roll-dialog">
-            <div class="dialog-pool-info">
-              <span>Manoeuvre Trait: <strong>${_cap(manoeuvreTrait)} (${manoeuvreVal})</strong></span>
-            </div>
-            <p class="dialog-hint">Manoeuvre is a catch-all — pair it with whichever Skill fits the action.</p>
-            <hr/>
-            <div class="dialog-field">
-              <label>Skill</label>
-              <select id="ss-skill">${skillOptions}</select>
-            </div>
-            <div class="dialog-field">
-              <label>Difficulty</label>
-              <input id="ss-difficulty" type="number" value="${difficulty}" min="1" max="20" />
-            </div>
-            <div class="dialog-field">
-              <label>Spend Hero Points <em>(${heroPoints} available)</em></label>
-              <input id="ss-hero-points" type="number" value="0" min="0" max="${heroPoints}" />
-              <p class="dialog-hint">Each adds 1d10 to the pool.</p>
-            </div>
-            <div class="dialog-field">
-              <label>Force Fate</label>
-              <input id="ss-force-fate" type="checkbox" />
-              <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
-            </div>
-            ${eaField}
-          </div>`,
-        buttons: {
-          roll: {
-            label: "Roll",
-            callback: html => resolve({
-              chosenSkill:      html.find("#ss-skill").val(),
-              finalDifficulty:  parseInt(html.find("#ss-difficulty").val()) || difficulty,
-              extraDice:        Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
-              forceFate:        html.find("#ss-force-fate").is(":checked"),
-              extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null,
-            }),
-          },
-          cancel: { label: "Cancel", callback: () => resolve(null) },
-        },
-        default: "roll",
-      }).render(true);
     });
   }
 
@@ -644,28 +645,46 @@ export class SeventhSeaDice {
     const skills       = actor.system.skills ?? {};
     const heroPoints   = actor.system.heroPoints ?? 0;
     const extendedActions = getExtendedActions();
+    const advList         = eligibleRollAdvantages(actor, { skillKeys: Object.keys(skills), traitKey });
+    const fortunateReady  = !!actor.getFlag?.("seventh-sea-3e", "fortunateReady");
+    const forceFateFreeReady = !!findAvailableAdvantage(actor, "sorte-strega-force-fate");
 
     const dialogResult = await SeventhSeaDice._showManoeuvreDialog({
       actorName: actor.name, traitKey, traitVal, skills, difficulty, heroPoints, extendedActions,
+      advList, fortunateReady, forceFateFreeReady,
     });
     if (dialogResult === null) return null;
 
-    const { chosenSkill, finalDifficulty, extraDice, forceFate, extendedActionId } = dialogResult;
+    const {
+      chosenSkill, finalDifficulty, extraDice, forceFate, extendedActionId,
+      advSelections = [], fortunateReroll = false, forceFateFreeRequested = false,
+    } = dialogResult;
     const skill     = skills[chosenSkill] ?? { value: 0, specialty: false };
-    const finalPool = Math.max(1, traitVal + skill.value + extraDice);
 
-    if (extraDice > 0) {
-      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - extraDice) });
+    const { bonusDice: advBonus, hpCost: advHpCost, footerLines: advFooterLines } =
+      await commitAdvantageChoices(actor, advSelections);
+    const assist = await consumeAssistBonus(actor);
+    if (assist) advFooterLines.push(`Helping Hand from ${assist.from} (+${assist.dice})`);
+
+    const finalPool = Math.max(1, traitVal + skill.value + extraDice + advBonus + (assist?.dice ?? 0));
+
+    const totalHpSpend = extraDice + advHpCost;
+    if (totalHpSpend > 0) {
+      await actor.update({ "system.heroPoints": Math.max(0, heroPoints - totalHpSpend) });
     }
 
     return SeventhSeaDice._resolveRoll({
       actor, label: `Manoeuvre [${_cap(traitKey)} + ${SKILL_LABELS[chosenSkill] ?? _cap(chosenSkill)}]`,
       finalPool, skillRank: skill.value, specialty: skill.specialty, finalDifficulty,
       extraDice, forceFate, includeDramaticWounds: false, extendedActionId,
+      advFooterLines, fortunateReroll, forceFateFreeRequested,
     });
   }
 
-  static _showManoeuvreDialog({ actorName, traitKey, traitVal, skills, difficulty, heroPoints, extendedActions = [] }) {
+  static _showManoeuvreDialog({
+    actorName, traitKey, traitVal, skills, difficulty, heroPoints, extendedActions = [],
+    advList = [], fortunateReady = false, forceFateFreeReady = false,
+  }) {
     const skillOptions = Object.entries(skills).map(([key, s]) =>
       `<option value="${key}">${SKILL_LABELS[key] ?? _cap(key)} (${s.value}${s.specialty ? " ◈" : ""})</option>`
     ).join("");
@@ -681,6 +700,12 @@ export class SeventhSeaDice {
                 ${eaOptions}
               </select>
               <p class="dialog-hint">Hits beyond Difficulty count toward the chosen Goal instead of granting Hero Points.</p>
+            </div>` : "";
+
+    const advField = renderAdvantageChoices(advList);
+    const fortunateField = fortunateReady ? `
+            <div class="dialog-field">
+              <label><input id="ss-fortunate" type="checkbox" /> Fortunate: reroll non-hit dice (once)</label>
             </div>` : "";
 
     return new Promise(resolve => {
@@ -710,7 +735,11 @@ export class SeventhSeaDice {
               <label>Force Fate</label>
               <input id="ss-force-fate" type="checkbox" />
               <p class="dialog-hint">Auto-succeed; GM gains VP equal to missing hits.</p>
+              ${forceFateFreeReady ? `
+              <label><input id="ss-force-fate-free" type="checkbox" /> Sorte Strega: no VP for this Force Fate (once/session)</label>` : ""}
             </div>
+            ${advField}
+            ${fortunateField}
             ${eaField}
           </div>`,
         buttons: {
@@ -722,6 +751,9 @@ export class SeventhSeaDice {
               extraDice:       Math.min(parseInt(html.find("#ss-hero-points").val()) || 0, heroPoints),
               forceFate:       html.find("#ss-force-fate").is(":checked"),
               extendedActionId: extendedActions.length > 0 ? (html.find("#ss-contribute-ea").val() || null) : null,
+              advSelections:   readAdvantageChoices(html, advList),
+              fortunateReroll: html.find("#ss-fortunate").is(":checked"),
+              forceFateFreeRequested: html.find("#ss-force-fate-free").is(":checked"),
             }),
           },
           cancel: { label: "Cancel", callback: () => resolve(null) },

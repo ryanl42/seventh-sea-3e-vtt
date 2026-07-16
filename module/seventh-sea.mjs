@@ -70,6 +70,7 @@ Hooks.once("init", () => {
   registerExtendedActionSetting();
   registerColorThemeSetting();
   registerSorteReadResetHook();
+  registerAdvantageSceneEndHook();
   game.settings.register("seventh-sea-3e", "migratedWoundMinorPerSegment", {
     scope: "world", config: false, type: Boolean, default: false,
   });
@@ -145,6 +146,34 @@ function registerColorThemeSetting() {
     },
     default: "default",
     onChange: value => applyColorTheme(value),
+  });
+}
+
+// ── Advantages — Oath / status effects clear when the Scene ends ─────────────
+// Oath ("+1 die per Hero Point invested... for the rest of the Scene") and
+// status-announcement Advantages like Soldier ("...until the Scene ends")
+// use the end of Combat as their closest available "Scene ends" proxy, same
+// as the Sorte Strega Reading reset above.
+function registerAdvantageSceneEndHook() {
+  Hooks.on("deleteCombat", async () => {
+    if (!game.user.isGM) return;
+    for (const actor of game.actors) {
+      for (const item of actor.items) {
+        if (item.type !== "advantage") continue;
+        if (item.system.key === "oath" && item.system.active) {
+          await item.update({
+            "system.active": false, "system.activeValue": 0,
+            "system.scope": "none", "system.bonusDice": 0,
+          });
+        }
+      }
+      if (actor.getFlag?.("seventh-sea-3e", "status.soldier")) {
+        await actor.unsetFlag("seventh-sea-3e", "status.soldier");
+      }
+      if (actor.getFlag?.("seventh-sea-3e", "status.officer")) {
+        await actor.unsetFlag("seventh-sea-3e", "status.officer");
+      }
+    }
   });
 }
 

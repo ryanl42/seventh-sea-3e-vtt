@@ -10,6 +10,8 @@ import { getTradition, getArcanaDef, createArcanaItemsForTradition } from "../so
 import { postVillainPointDamagePrompt } from "../combat/vp-chat.mjs";
 import { computeWoundTrack } from "../combat/wound-track.mjs";
 import { aptitudeValue, firstTargetActor } from "../actor/aptitude-utils.mjs";
+import { activateAdvantage, grantHelpingHand, clearOath } from "../advantages/advantage-engine.mjs";
+import { getAdvantageDef } from "../advantages/advantage-defs.mjs";
 
 const { ActorSheetV2 }               = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -41,6 +43,10 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editAdvantage:    HeroSheet._onEditAdvantage,
       deleteAdvantage:  HeroSheet._onDeleteAdvantage,
       toggleAdvantage:  HeroSheet._onToggleAdvantage,
+      activateAdvantage:HeroSheet._onActivateAdvantage,
+      clearOathAdvantage: HeroSheet._onClearOathAdvantage,
+      helpAlly:         HeroSheet._onHelpAlly,
+      resetAdvantageUses: HeroSheet._onResetAdvantageUses,
       adjustHeroPoints: HeroSheet._onAdjustHeroPoints,
       createSorcery:    HeroSheet._onCreateSorcery,
       editSorcery:      HeroSheet._onEditSorcery,
@@ -101,9 +107,20 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       actor:        this.document,
       system:       this.document.system,
       isEditable:   this.isEditable,
-      advantages:   this.document.items.filter(i => i.type === "advantage"),
+      advantages:   this.document.items.filter(i => i.type === "advantage").map(item => {
+        const def = getAdvantageDef(item.system.key);
+        const rollBonus = item.system.scope && item.system.scope !== "none";
+        return {
+          item, id: item.id, name: item.name, system: item.system,
+          automationLabel: def?.label ?? null,
+          hasActivate: !!def && !["specialtyGrant", "assistOverride", "none", "forceFateFree"].includes(def.mechanic),
+          isOath: item.system.key === "oath",
+          rollBonusOnly: rollBonus && !def,
+        };
+      }),
       sorceryItems,
       activeTab:    this._activeTab,
+      isGM:         game.user.isGM,
     };
   }
 
@@ -313,7 +330,7 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ── First Aid ────────────────────────────────────────────────────────────
   // Manoeuvre + Science, healing the targeted token's regular Wounds.
   static async _onRollFirstAid() {
-    const target = _getFirstTarget();
+    const target = firstTargetActor();
     if (!target) {
       ui.notifications.warn("Target a token to give First Aid to.");
       return;
@@ -489,6 +506,40 @@ export class HeroSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async _onDeleteAdvantage(event, target) {
     const item = this.document.items.get(target.dataset.itemId);
     if (item) await item.delete();
+  }
+
+  static async _onActivateAdvantage(event, target) {
+    const item = this.document.items.get(target.dataset.itemId);
+    if (!item) return;
+    await activateAdvantage(this.document, item);
+  }
+
+  static async _onClearOathAdvantage(event, target) {
+    const item = this.document.items.get(target.dataset.itemId);
+    if (!item) return;
+    await clearOath(item);
+  }
+
+  static async _onHelpAlly() {
+    const target = firstTargetActor();
+    if (!target) {
+      ui.notifications.warn("Target the ally you want to help before using Help Ally.");
+      return;
+    }
+    if (target.id === this.document.id) {
+      ui.notifications.warn("You can't help yourself with Helping Hand.");
+      return;
+    }
+    await grantHelpingHand({ helper: this.document, target });
+  }
+
+  static async _onResetAdvantageUses() {
+    if (!game.user.isGM) return;
+    const updates = this.document.items
+      .filter(i => i.type === "advantage" && i.system.usesMax > 0)
+      .map(i => ({ _id: i.id, "system.usesSpent": 0, "system.used": false }));
+    if (updates.length) await this.document.updateEmbeddedDocuments("Item", updates);
+    ui.notifications.info(`${this.document.name}: limited-use Advantages refreshed for a new session.`);
   }
 
   // ── Hero Points ────────────────────────────────────────────────────────────

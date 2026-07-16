@@ -3,9 +3,15 @@
 
   <div class="section-heading-row">
     <div class="section-heading">Advantages</div>
-    {{#if isEditable}}
-    <button type="button" class="create-advantage-btn" data-action="createAdvantage">+ Add</button>
-    {{/if}}
+    <div class="adv-panel-buttons">
+      {{#if isEditable}}
+      <button type="button" class="help-ally-btn" data-action="helpAlly" title="Spend 1 Hero Point to add dice to a targeted ally's next roll (Team Player grants +4d10 instead of +3d10)">Help Ally</button>
+      <button type="button" class="create-advantage-btn" data-action="createAdvantage">+ Add</button>
+      {{/if}}
+      {{#if isGM}}
+      <button type="button" class="reset-advantage-uses-btn" data-action="resetAdvantageUses" title="Refresh all limited-use Advantages for a new session">Reset Session</button>
+      {{/if}}
+    </div>
   </div>
 
   <div class="advantage-list">
@@ -17,6 +23,12 @@
         <span class="adv-expand-icon">▶</span>
         <span class="adv-category-tag adv-{{adv.system.category}}">{{adv.system.category}}</span>
         <span class="adv-name">{{adv.name}}</span>
+        {{#if adv.rollBonusOnly}}
+        <span class="adv-auto-badge" title="Offered automatically as a bonus-dice checkbox on matching rolls">+{{adv.system.bonusDice}} auto</span>
+        {{/if}}
+        {{#if adv.system.usesMax}}
+        <span class="adv-uses-badge">{{adv.system.usesRemaining}}/{{adv.system.usesMax}} left</span>
+        {{/if}}
         {{#if ../isEditable}}
         <div class="adv-controls">
           <a data-action="editAdvantage" data-item-id="{{adv.id}}" title="Edit">✎</a>
@@ -32,6 +44,30 @@
         {{else}}
         <p class="adv-no-desc">No description. Click ✎ to add one.</p>
         {{/if}}
+
+        <div class="adv-automation">
+          {{#if adv.automationLabel}}
+            <p class="adv-automation-note">Automation: <strong>{{adv.automationLabel}}</strong></p>
+          {{else if adv.rollBonusOnly}}
+            <p class="adv-automation-note">Offered automatically as a +{{adv.system.bonusDice}}-die checkbox on matching rolls.</p>
+          {{else}}
+            <p class="adv-automation-note adv-manual">No automation configured — resolve narratively with your GM, or set a <em>key</em> on this item's sheet.</p>
+          {{/if}}
+
+          {{#if adv.hasActivate}}
+          {{#if ../isEditable}}
+          <button type="button" class="adv-activate-btn" data-action="activateAdvantage" data-item-id="{{adv.id}}">
+            {{#if adv.isOath}}{{#if adv.system.active}}Renew Oath{{else}}Swear Oath{{/if}}{{else}}Activate{{/if}}
+          </button>
+          {{#if adv.isOath}}
+          {{#if adv.system.active}}
+          <button type="button" class="adv-activate-btn adv-clear-btn" data-action="clearOathAdvantage" data-item-id="{{adv.id}}">Clear Oath</button>
+          <p class="adv-oath-note">Active: <em>{{adv.system.activeNote}}</em> (+{{adv.system.activeValue}} dice)</p>
+          {{/if}}
+          {{/if}}
+          {{/if}}
+          {{/if}}
+        </div>
       </div>
 
     </div>
