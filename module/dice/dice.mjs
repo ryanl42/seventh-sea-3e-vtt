@@ -25,6 +25,38 @@ const SKILL_LABELS = {
 
 export class SeventhSeaDice {
 
+  // ── Dice So Nice hand-off ────────────────────────────────────────────────
+  // The system resolves pools itself (hit-counting, exploding dice, Dramatic
+  // Wound dice) rather than rendering a Roll through the default chat card,
+  // so a plain `new Roll().evaluate()` never reaches Dice So Nice. This
+  // wrapper is the single place every internal roll goes through, so 3D dice
+  // show for the initial pool, each wave of explosions, wound dice, and
+  // Fortunate rerolls alike. `colorset` optionally overrides the die's
+  // appearance (e.g. Dramatic Wound dice get their own look) — see
+  // dice-so-nice.mjs for the registered colorsets. No-ops cleanly if Dice So
+  // Nice isn't installed/active.
+static async _rollPool(formula, { colorset = null } = {}) {
+    const r = new Roll(formula);
+    await r.evaluate();
+    console.log("7thSea3e | _rollPool", {
+      formula, evaluated: r._evaluated, diceCount: r.dice?.length,
+      hasDice3d: !!game.dice3d, colorset,
+    });
+    if (game.dice3d) {
+      if (colorset) {
+        for (const term of r.dice) term.options = { ...term.options, colorset };
+      }
+      try {
+        console.log("7thSea3e | calling showForRoll...");
+        await game.dice3d.showForRoll(r, game.user, true);
+        console.log("7thSea3e | showForRoll resolved");
+      } catch (err) {
+        console.warn("7thSea3e | Dice So Nice animation failed", err);
+      }
+    }
+    return r;
+  }
+
   /**
    * Standard skill roll — shows dialog with Trait selector.
    */
@@ -317,8 +349,7 @@ export class SeventhSeaDice {
     const allFaces = [];
     let pending = finalPool;
     while (pending > 0) {
-      const r = new Roll(`${pending}d10`);
-      await r.evaluate();
+      const r = await SeventhSeaDice._rollPool(`${pending}d10`);
       const faces = r.dice[0].results.map(res => res.result);
       allFaces.push(...faces);
       pending = faces.filter(f => f >= explodeOn).length;
@@ -331,8 +362,7 @@ export class SeventhSeaDice {
       if (usedFortunate) {
         const rerollCount = allFaces.filter(f => f < threshold).length;
         if (rerollCount > 0) {
-          const r = new Roll(`${rerollCount}d10`);
-          await r.evaluate();
+          const r = await SeventhSeaDice._rollPool(`${rerollCount}d10`);
           const newFaces = r.dice[0].results.map(res => res.result);
           let i = 0;
           for (let idx = 0; idx < allFaces.length; idx++) {
@@ -355,8 +385,7 @@ export class SeventhSeaDice {
     let woundDicePending  = woundDiceCount;
     let dramaticWoundHelplessTriggered = false;
     while (woundDicePending > 0) {
-      const r = new Roll(`${woundDicePending}d10`);
-      await r.evaluate();
+      const r = await SeventhSeaDice._rollPool(`${woundDicePending}d10`, { colorset: "seventhSeaWound" });
       const faces = r.dice[0].results.map(res => res.result);
       woundFaces.push(...faces);
       if (faces.some(f => f === 1)) dramaticWoundHelplessTriggered = true;
@@ -534,8 +563,7 @@ export class SeventhSeaDice {
     const allFaces = [];
     let pending = finalPool;
     while (pending > 0) {
-      const r = new Roll(`${pending}d10`);
-      await r.evaluate();
+      const r = await SeventhSeaDice._rollPool(`${pending}d10`);
       const faces = r.dice[0].results.map(res => res.result);
       allFaces.push(...faces);
       pending = faces.filter(f => f >= explodeOn).length;

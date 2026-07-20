@@ -15,6 +15,7 @@ import { NPCSheet }       from "./apps/npc-sheet.mjs";
 import { AdvantageSheet } from "./apps/advantage-sheet.mjs";
 import { SorcerySheet }   from "./apps/sorcery-sheet.mjs";
 import { SeventhSeaDice } from "./dice/dice.mjs";
+import { registerDiceSoNice } from "./dice/dice-so-nice.mjs";
 import { registerHandlebarsHelpers } from "./helpers/handlebars.mjs";
 import { registerVillainySetting, initVillainHUD, adjustVP, getVP, setVP } from "./settings/villainy.mjs";
 import { registerVillainPointChatListeners } from "./combat/vp-chat.mjs";
@@ -71,6 +72,7 @@ Hooks.once("init", () => {
   registerColorThemeSetting();
   registerSorteReadResetHook();
   registerAdvantageSceneEndHook();
+  registerDiceSoNice();
   game.settings.register("seventh-sea-3e", "migratedWoundMinorPerSegment", {
     scope: "world", config: false, type: Boolean, default: false,
   });
@@ -179,6 +181,9 @@ function registerAdvantageSceneEndHook() {
 
 function applyColorTheme(value) {
   document.body.dataset.ssTheme = value;
+  if (game.dice3d) {
+    game.dice3d.updateConfig({ colorset: value === "classic" ? "seventhSeaClassic" : "seventhSea" });
+  }
 }
 
 // ── Sorte Strega — clear "Read this scene" flags when Combat ends ─────────────
