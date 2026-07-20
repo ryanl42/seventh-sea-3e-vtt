@@ -1,0 +1,191 @@
+import json, random, string
+
+def rid():
+    return "".join(random.choices(string.ascii_letters + string.digits, k=16))
+
+def adv(name, category, description, *,
+        key="", scope="none", scopeSkills=None, scopeTrait="", bonusDice=1,
+        hpCost=1, usesMax=0):
+    return {
+        "_id": rid(),
+        "name": name,
+        "type": "advantage",
+        "img": "icons/svg/upgrade.svg",
+        "system": {
+            "category": category,
+            "hpCost": hpCost,
+            "used": False,
+            "description": f"<p>{description}</p>",
+            "key": key,
+            "scope": scope,
+            "scopeSkills": scopeSkills or [],
+            "scopeTrait": scopeTrait,
+            "bonusDice": bonusDice,
+            "usesMax": usesMax,
+            "usesSpent": 0,
+            "active": False,
+            "activeValue": 0,
+            "activeNote": "",
+        },
+        "effects": [],
+        "folder": None,
+        "sort": 0,
+        "ownership": {"default": 0},
+        "flags": {},
+    }
+
+POLITICS = ["intrigue", "protocol", "selfControl"]
+CUNNING  = ["investigation", "stealth", "theft"]
+
+ADVANTAGES = {
+    "manuela000001": [
+        adv("Firearms Specialist", "passive",
+            "You gain a Specialty in Aim when using a firearm. When you make a roll using this Skill, dice \u201cexplode\u201d on a result of 9 or 10.",
+            key="firearms-specialist"),
+        adv("Team Player", "passive",
+            "When you spend 1 Hero Point to help another Hero, they add 4d10 to their hand (instead of 3d10).",
+            key="team-player"),
+        adv("Cursed Heir", "situational",
+            "By invoking your family lineage (villain), you gain 1 additional die on Politics Skills to gain access to discussions / secret meetings.",
+            scope="skill", scopeSkills=POLITICS),
+        adv("Leadership", "situational",
+            "You gain 1 additional die on any roll meant to spur a group into action or coordinate collective actions.",
+            scope="always"),
+        adv("Camaraderie", "heroic",
+            "You may spend your Hero Points for your allies (outside of Helping Hand, for example, to increase Damage). This requires that you be in a position to help them, at minimum, present in the same room.",
+            key="camaraderie", hpCost=1),
+        adv("Altruistic", "extraordinary",
+            "Once per game, you may suffer a harmful effect (such as Wounds or a penalty) in place of another character.",
+            key="altruistic", usesMax=1),
+        adv("Officer", "extraordinary",
+            "Once per game, Manuela cuts through the chaos with a brief order: she may automatically end a state of fear, panic, or disorganization. The affected allies may act normally from this turn onward.",
+            key="officer", usesMax=1),
+        adv("Unfortunate", "extraordinary",
+            "Once per game, you gain 1 additional Hero Point when you choose to fail an important roll without even rolling the dice.",
+            key="unfortunate", usesMax=1),
+    ],
+    "hugues0000001": [
+        adv("Reputation: Upright", "situational",
+            "You gain 1 additional die on rolls when your Reputation works in your favor.",
+            scope="always"),
+        adv("Schemer", "situational",
+            "You gain 1 additional die on Politics Skills to find information in a court or at a social event.",
+            scope="skill", scopeSkills=POLITICS),
+        adv("Staredown", "situational",
+            "You gain 1 additional die when you try to intimidate or persuade through fear.",
+            scope="skill", scopeSkills=["persuasion"]),
+        adv("Friend at Court", "heroic",
+            "Spend 1 Hero Point to reveal that you have a close friend present at a party, ball, or any other social event.",
+            key="friend-at-court", hpCost=1),
+        adv("Indomitable Will", "heroic",
+            "Spend 1 Hero Point to automatically resist when another character tries to intimidate, seduce, or manipulate you.",
+            key="indomitable-will", hpCost=1),
+        adv("Intuitive", "extraordinary",
+            "Once per game, ask the Game Master a yes/no question. They must answer honestly with \u201cYes\u201d or \u201cNo\u201d.",
+            key="intuitive", usesMax=1),
+        adv("Politician", "extraordinary",
+            "Once per game, obtaining an audience with a decision-maker automatically succeeds.",
+            key="politician", usesMax=1),
+        adv("Relentless", "extraordinary",
+            "Once per game, you gain 1 Hero Point when you refuse to settle for a merely \u201csatisfactory\u201d result or a small victory, and it gets you into trouble.",
+            key="relentless", usesMax=1),
+    ],
+    "mallory000001": [
+        adv("Cast Iron Stomach", "passive",
+            "Drink as much as you like; alcohol has no effect on you. You suffer no negative consequences.",
+            key="cast-iron-stomach"),
+        adv("Outlaw", "situational",
+            "You gain 1 additional die on Cunning Skills to disappear into crowds and across rooftops.",
+            scope="skill", scopeSkills=CUNNING),
+        adv("Small", "situational",
+            "You gain 1 additional die on any roll where your size is an advantage.",
+            scope="always"),
+        adv("Brush Pass", "heroic",
+            "Spend 1 Hero Point to cut a purse, slip a ring off someone\u2019s finger, or plant an object that fits in your hand on another character without them noticing.",
+            key="brush-pass", hpCost=1),
+        adv("Got it!", "heroic",
+            "Spend 1 Hero Point to instantly pick a lock, open a safe, or disarm a trap.",
+            key="got-it", hpCost=1),
+        adv("Second Story Work", "heroic",
+            "Spend 1 Hero Point to find a way to access a building, room, or guarded site without being noticed. Spend 1 additional Hero Point to bring someone with you.",
+            key="second-story-work", hpCost=1),
+        adv("Criminal", "extraordinary",
+            "Once per game, spotting the best exit or hiding place automatically succeeds.",
+            key="criminal", usesMax=1),
+        adv("Envious", "extraordinary",
+            "Once per game, you gain 1 Hero Point when you try to take something you covet, and it gets you into trouble.",
+            key="envious", usesMax=1),
+        adv("Fortunate", "extraordinary",
+            "Once per game, reroll all or part of a dice roll.",
+            key="fortunate", usesMax=1),
+    ],
+    "hans00000001": [
+        adv("Dracheneisen Panzerfaust", "situational",
+            "You own a masterwork weapon, a dracheneisen panzerfaust forged by one of the last Nibelungen. You gain 1 additional dice on any roll where you use it.",
+            scope="skill", scopeSkills=["melee"]),
+        adv("Idealist", "situational",
+            "You gain 1 additional die on any roll meant to directly protect someone.",
+            scope="always"),
+        adv("Duelist Academy (Mauer aus Eisen)", "heroic",
+            "Hans was trained at the Eisenfaust Academy. When he successfully parries an Attack, he may spend 1 Hero Point to trap his opponent's blade with his Panzerfaust: their Attack and Defence Aptitudes are reduced by 1 for their next turn.",
+            key="idealist-parry", hpCost=1),
+        adv("Perfect Balance", "heroic",
+            "Spend a Hero Point to cross a narrow beam, leap from one place to another, or perform any other feat based on balance and agility.",
+            scope="skill", scopeSkills=["athletics"], hpCost=1),
+        adv("I Won't Die Here", "heroic",
+            "Spend 1 Hero Point to ignore all negative effects (Dramatic Wounds, Threats, etc.) for 1 round. The Hero point must be spent before the roll.",
+            key="wont-die-here", hpCost=1),
+        adv("Foolhardy", "extraordinary",
+            "Once per game, you gain 1 Hero Point when your recklessness, nerve, or audacity gets you into trouble.",
+            key="foolhardy", usesMax=1),
+        adv("Passionate", "extraordinary",
+            "Once per game, cancel all Wounds suffered by another character. Instead, you suffer one Dramatic Wound.",
+            key="passionate", usesMax=1),
+        adv("Soldier", "extraordinary",
+            "Once per game, you may \u201chold your line.\u201d Choose a semi-enclosed area. As long as you don't move, and until the end of the Scene, no enemy can pass through that area without first going through you and facing you.",
+            key="soldier", usesMax=1),
+    ],
+    "veronica00001": [
+        adv("Sorcery", "passive",
+            "You are a Sorte Strega and know how to read the threads of Destiny. Handled by the Sorcery tab (Reading/Weaving, Backlash).",
+            key="sorcery"),
+        adv("Conspirator", "situational",
+            "You gain 1 additional die on Cunning Skills when your plans were prepared in advance.",
+            scope="skill", scopeSkills=CUNNING),
+        adv("Barterer", "heroic",
+            "Spend 1 Hero Point to persuade someone to accept a deal. The Game Master may spend 1 Villainy point to make a Villain immune to this effect.",
+            key="barterer", hpCost=1),
+        adv("Extended Family", "heroic",
+            "Spend 1 Hero Point to discover that a distant cousin is nearby. They can provide shelter, gear, or information.",
+            key="extended-family", hpCost=1),
+        adv("Oath", "heroic",
+            "Spend as many Hero Points as you wish and make a promise to another character. For the rest of the Scene, when you take an Action aimed at keeping that promise, add 1 additional die to your hand per Hero Point invested.",
+            key="oath"),
+        adv("Curious", "extraordinary",
+            "Once per game, you gain 1 Hero Point when you take an interest in something, and it gets you into trouble.",
+            key="curious", usesMax=1),
+        adv("Illuminating", "extraordinary",
+            "Once per game, you can tell whether someone is lying to you.",
+            key="illuminating", usesMax=1),
+        adv("Sorte Strega", "extraordinary",
+            "Once per game, you may Force Fate for free, i.e., obtain a Success without the Game Master gaining Villainy points.",
+            key="sorte-strega-force-fate", usesMax=1),
+    ],
+}
+
+lines = []
+with open("packs/heroes.db") as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        doc = json.loads(line)
+        items = ADVANTAGES.get(doc["_id"])
+        if items:
+            doc["items"] = items
+        lines.append(json.dumps(doc, separators=(",", ":")))
+
+with open("packs/heroes.db", "w") as f:
+    f.write("\n".join(lines) + "\n")
+
+print("done, wrote", len(lines), "docs")

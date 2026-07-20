@@ -3,6 +3,7 @@
  * Adds derived wound values for token bars and proper wound tracking.
  */
 import { computeWoundTrack } from "../combat/wound-track.mjs";
+import { getAdvantageDef }   from "../advantages/advantage-defs.mjs";
 
 const { fields } = foundry.data;
 
@@ -96,6 +97,20 @@ export class HeroData extends foundry.abstract.TypeDataModel {
     }
 
     this.lowestTrait = Math.min(...Object.values(this.traits).map(t => t.value));
+
+    // ── Passive Advantage effects ────────────────────────────────────────
+    // Some Advantages are always-on and modify base Skill data directly
+    // (e.g. Firearms Specialist forces a Specialty onto Aim) rather than
+    // showing up as an opt-in roll-time bonus. Applied here so every part
+    // of the sheet (and the dice engine's Specialty-explode logic) sees it
+    // automatically, with no further setup needed.
+    const advantageItems = this.parent?.items?.filter(i => i.type === "advantage") ?? [];
+    for (const adv of advantageItems) {
+      const def = getAdvantageDef(adv.system.key);
+      if (def?.mechanic === "specialtyGrant" && this.skills[def.skill]) {
+        this.skills[def.skill].specialty = true;
+      }
+    }
 
     // ── Token bar objects ────────────────────────────────────────────────
     // Foundry reads {value, max} objects for token bars.

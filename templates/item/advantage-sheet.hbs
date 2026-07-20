@@ -1,5 +1,5 @@
 {{!-- Advantage Item Sheet --}}
-<div class="item-sheet">
+<div class="item-sheet advantage-item-sheet">
 
   <div class="item-header">
     <img class="item-img" src="{{item.img}}" title="{{item.name}}" />
@@ -49,8 +49,83 @@
 
   <div class="item-description">
     <label>Description</label>
-    <textarea name="system.description" rows="8"
+    <textarea name="system.description" rows="6"
               {{#unless isEditable}}disabled{{/unless}}>{{system.description}}</textarea>
   </div>
+
+  <fieldset class="adv-automation-fields">
+    <legend>Automation</legend>
+
+    <div class="field-row">
+      <label>Automation key</label>
+      <select name="system.key" {{#unless isEditable}}disabled{{/unless}}>
+        <option value="">— None (manual / GM-adjudicated) —</option>
+        {{#each knownKeys as |k|}}
+        <option value="{{k}}" {{#if (eq ../system.key k)}}selected{{/if}}>{{k}}</option>
+        {{/each}}
+      </select>
+      <p class="dialog-hint">Only matters for special mechanics (grant Hero Point, reroll, redirect Wounds, etc.) — see ADVANTAGES.md. Leave blank for a plain roll-time bonus.</p>
+    </div>
+
+    <div class="field-row">
+      <label>Roll-time bonus applies to</label>
+      <select name="system.scope" {{#unless isEditable}}disabled{{/unless}}>
+        <option value="none"   {{#if (eq system.scope "none")}}selected{{/if}}>Nothing (Activate-only, or no automation)</option>
+        <option value="always" {{#if (eq system.scope "always")}}selected{{/if}}>Any roll (player judges the fit)</option>
+        <option value="skill"  {{#if (eq system.scope "skill")}}selected{{/if}}>Specific Skill(s)</option>
+        <option value="trait"  {{#if (eq system.scope "trait")}}selected{{/if}}>Specific Trait</option>
+      </select>
+    </div>
+
+    {{#if (eq system.scope "skill")}}
+    <div class="field-row adv-skill-checks">
+      <label>Skills</label>
+      <div class="adv-skill-grid">
+        {{#each skillOptions as |s|}}
+        <label class="adv-skill-check">
+          <input type="checkbox" name="system.scopeSkills" value="{{s.key}}"
+                 {{#if s.checked}}checked{{/if}} {{#unless ../isEditable}}disabled{{/unless}} />
+          {{s.key}}
+        </label>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if (eq system.scope "trait")}}
+    <div class="field-row">
+      <label>Trait</label>
+      <select name="system.scopeTrait" {{#unless isEditable}}disabled{{/unless}}>
+        <option value="brawn"   {{#if (eq system.scopeTrait "brawn")}}selected{{/if}}>Brawn</option>
+        <option value="finesse" {{#if (eq system.scopeTrait "finesse")}}selected{{/if}}>Finesse</option>
+        <option value="panache" {{#if (eq system.scopeTrait "panache")}}selected{{/if}}>Panache</option>
+        <option value="resolve" {{#if (eq system.scopeTrait "resolve")}}selected{{/if}}>Resolve</option>
+        <option value="wits"    {{#if (eq system.scopeTrait "wits")}}selected{{/if}}>Wits</option>
+      </select>
+    </div>
+    {{/if}}
+
+    {{#unless (eq system.scope "none")}}
+    <div class="field-row">
+      <label>Bonus dice</label>
+      <input type="number" name="system.bonusDice" value="{{system.bonusDice}}"
+             min="0" max="5" {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+    {{/unless}}
+
+    <div class="field-row">
+      <label>Uses per session</label>
+      <input type="number" name="system.usesMax" value="{{system.usesMax}}"
+             min="0" max="10" {{#unless isEditable}}disabled{{/unless}} />
+      <p class="dialog-hint">0 = unlimited (Passive/Situational, or Heroic paid in Hero Points each time). 1+ = limited uses that refresh with a new session (typical for Extraordinary).</p>
+    </div>
+    {{#if system.usesMax}}
+    <div class="field-row">
+      <label>Uses spent</label>
+      <input type="number" name="system.usesSpent" value="{{system.usesSpent}}"
+             min="0" max="{{system.usesMax}}" {{#unless isEditable}}disabled{{/unless}} />
+    </div>
+    {{/if}}
+  </fieldset>
 
 </div>

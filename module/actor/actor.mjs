@@ -163,6 +163,39 @@ export class SeventhSeaActor extends Actor {
     return healed;
   }
 
+  /**
+   * Directly marks the next available segment as a Dramatic Wound, without
+   * requiring its Minor Wound dots to be filled first. Used by advantages
+   * like Passionate, which have a Hero "take a Dramatic Wound" as a direct
+   * cost rather than as the result of accumulated damage.
+   *
+   * @param {object} [options]
+   * @param {number} [options.dramaticLimit=4]
+   * @returns {boolean} whether a Dramatic Wound was actually applied
+   *   (false if the character is already fully Helpless).
+   */
+  async applyDirectDramaticWound({ dramaticLimit = 4 } = {}) {
+    const dramatic = [...this.system.wounds.dramatic];
+    const toughness = this._toughnessValue();
+    const minorPerSegment = [...this.system.wounds.minorPerSegment];
+    const seg = dramatic.findIndex(marked => !marked);
+    if (seg === -1 || seg >= dramaticLimit) return false;
+
+    dramatic[seg] = true;
+    minorPerSegment[seg] = toughness;
+    const dwCount  = dramatic.filter(Boolean).length;
+    const helpless = dwCount >= dramaticLimit;
+
+    await this.update({
+      "system.wounds.minorPerSegment": minorPerSegment,
+      "system.wounds.dramatic":        dramatic,
+      "system.wounds.helpless":        helpless,
+    });
+
+    if (helpless) ui.notifications.warn(`${this.name} has suffered their ${dramaticLimit}th Dramatic Wound and is Helpless!`);
+    return true;
+  }
+
   /** @override — provide token bar attributes */
   getRollData() {
     const data = super.getRollData();
